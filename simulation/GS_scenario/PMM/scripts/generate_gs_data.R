@@ -1,3 +1,5 @@
+# Generates one GS simulation dataset and its true target coefficient.
+
 make_gs_data <- function(seed, obs = 4000, subsample_n = 1000, threshold = 2) {
   set.seed(seed)
 

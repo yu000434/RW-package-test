@@ -1,3 +1,5 @@
+# Computes the Rao--Blackwellized PMM cross term for the RW and GS analyses.
+
 rb_kappa_rw <- function(
     imps,
     fit,
@@ -27,6 +29,7 @@ rb_kappa_rw <- function(
     analysis_beta <- unname(coef(analysis_model)[["X"]])
     analysis_sigma2 <- summary(analysis_model)$sigma^2
 
+    # E(U_ij | PMM predictors) for each possible donor-recipient pair.
     conditional_residual <- outer(
       inputs$membership$donor_prediction,
       analysis_x * analysis_beta,
@@ -69,6 +72,7 @@ rb_kappa_rw <- function(
   )
 }
 
+# The GS score requires one-dimensional normal integration over donor values.
 gauss_legendre_rule <- function(order) {
   order <- as.integer(order)
   if (length(order) != 1L || is.na(order) || order < 2L) {
@@ -213,6 +217,7 @@ rb_kappa_gs <- function(
       observed_downstream <- as.numeric(as.character(observed_downstream))
     }
 
+    # Integrate the downstream logistic score under the fitted PMM model.
     conditional <- normal_integrated_gs_score(
       inputs$membership$donor_prediction,
       imps$models[[variable]][[p]]$sigma.dot,

@@ -11,7 +11,7 @@ if (is.na(task_id)) stop("TASK_ID must be an integer.")
 
 script_path <- sub("^--file=", "", commandArgs()[grep("^--file=", commandArgs())])
 sim_root <- normalizePath(file.path(dirname(script_path), "..", "..", ".."), mustWork = TRUE)
-source(file.path(sim_root, "RW_scenario", "PMM", "R", "run_one.R"))
+source(file.path(sim_root, "RW_scenario", "PMM", "scripts", "run_one.R"))
 scenarios <- c(S1 = "robins_1", S2a = "robins_2_1", S2b = "robins_2_2",
                S2c = "robins_2_3", S3a = "robins_3_1", S3b = "robins_3_2")
 seed_block <- 100000L

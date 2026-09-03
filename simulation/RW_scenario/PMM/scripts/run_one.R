@@ -1,10 +1,10 @@
 load_rw_method <- function(sim_root) {
-  source(file.path(sim_root, "R", "method", "pmmrw.R"))
-  source(file.path(sim_root, "R", "method", "topk.R"))
-  source(file.path(sim_root, "R", "method", "rw_variance.R"))
-  source(file.path(sim_root, "R", "method", "metrics.R"))
-  source(file.path(sim_root, "R", "method", "rb.R"))
-  source(file.path(sim_root, "RW_scenario", "PMM", "R", "generate_rw_data.R"))
+  source(file.path(sim_root, "R", "pmmrw.R"))
+  source(file.path(sim_root, "R", "topk.R"))
+  source(file.path(sim_root, "R", "rw_variance.R"))
+  source(file.path(sim_root, "R", "metrics.R"))
+  source(file.path(sim_root, "R", "rb.R"))
+  source(file.path(sim_root, "RW_scenario", "PMM", "scripts", "generate_rw_data.R"))
 }
 
 run_one_rw <- function(seed, scenario, n, m, k, sim_root) {

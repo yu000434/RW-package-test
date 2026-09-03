@@ -3,8 +3,8 @@
 args <- commandArgs()
 script_path <- sub("^--file=", "", args[grep("^--file=", args)])
 sim_root <- normalizePath(file.path(dirname(script_path), ".."), mustWork = TRUE)
-source(file.path(sim_root, "R", "method", "pmmrw.R"))
-source(file.path(sim_root, "RW_scenario", "PMM", "R", "generate_rw_data.R"))
+source(file.path(sim_root, "R", "pmmrw.R"))
+source(file.path(sim_root, "RW_scenario", "PMM", "scripts", "generate_rw_data.R"))
 
 data <- make_rw_data(14000001L, n = 150L, type = "robins_2_2")$dat
 method <- mice::make.method(data)

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pmm_dir=$(cd "$(dirname "$TASK_FILE")/.." && pwd)
+pmm_dir=$(cd "$(dirname "$TASK_FILE")" && pwd)
 script_dir="$pmm_dir/scripts"
 module load R/4.5
 export R_LIBS_USER="${R_LIBS_USER:-$HOME/MI/Rlib}"

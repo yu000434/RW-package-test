@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pmm_dir=$(cd "$(dirname "$TASK_FILE")/.." && pwd)
+pmm_dir=$(cd "$(dirname "$TASK_FILE")" && pwd)
 script_dir="$pmm_dir/scripts"
 if [[ -n "${RSCRIPT_BIN:-}" ]]; then
   rscript="$RSCRIPT_BIN"

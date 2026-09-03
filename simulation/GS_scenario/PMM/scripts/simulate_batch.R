@@ -11,7 +11,7 @@ if (is.na(task_id)) stop("TASK_ID must be an integer.")
 
 script_path <- sub("^--file=", "", commandArgs()[grep("^--file=", commandArgs())])
 sim_root <- normalizePath(file.path(dirname(script_path), "..", "..", ".."), mustWork = TRUE)
-source(file.path(sim_root, "GS_scenario", "PMM", "R", "run_one.R"))
+source(file.path(sim_root, "GS_scenario", "PMM", "scripts", "run_one.R"))
 
 tasks <- read.csv(task_file, stringsAsFactors = FALSE)
 task <- tasks[tasks$task_id == task_id, , drop = FALSE]

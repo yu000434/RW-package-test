@@ -1,5 +1,5 @@
-# Defines `pmmrw`, a PMM implementation that calls `mice::matchindex()` 
-# and records the realized donor IDs and PMM model quantities needed for variance estimation.
+# Runs ordinary MICE PMM matching and records the realized donor IDs and
+# fitted PMM quantities required by the variance estimator.
 
 mice.impute.pmmrw <- function(
     y,
@@ -60,6 +60,7 @@ mice.impute.pmmrw <- function(
     donors <- round(length(yhat_obs) / 600 + 7)
   }
   donors <- max(1L, min(as.integer(donors), length(yhat_obs)))
+  # This is MICE's standard donor selection; completed values are unchanged.
   donor_pos <- mice::matchindex(yhat_obs, yhat_mis, donors)
 
   sigma_hat <- as.numeric(parm$sigma)
@@ -74,6 +75,7 @@ mice.impute.pmmrw <- function(
   donor_id <- rep(NA_integer_, n)
   donor_id[wy] <- row_id[ry][donor_pos]
 
+  # Store matching information without changing the values returned to MICE.
   model$setup <- list(
     method = "pmmrw",
     n = sum(ry),

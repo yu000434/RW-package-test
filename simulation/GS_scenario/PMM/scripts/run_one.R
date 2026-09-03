@@ -1,10 +1,10 @@
 load_gs_method <- function(sim_root) {
-  source(file.path(sim_root, "R", "method", "pmmrw.R"))
-  source(file.path(sim_root, "R", "method", "topk.R"))
-  source(file.path(sim_root, "R", "method", "rw_variance.R"))
-  source(file.path(sim_root, "R", "method", "metrics.R"))
-  source(file.path(sim_root, "R", "method", "rb.R"))
-  source(file.path(sim_root, "GS_scenario", "PMM", "R", "generate_gs_data.R"))
+  source(file.path(sim_root, "R", "pmmrw.R"))
+  source(file.path(sim_root, "R", "topk.R"))
+  source(file.path(sim_root, "R", "rw_variance.R"))
+  source(file.path(sim_root, "R", "metrics.R"))
+  source(file.path(sim_root, "R", "rb.R"))
+  source(file.path(sim_root, "GS_scenario", "PMM", "scripts", "generate_gs_data.R"))
 }
 
 run_one_gs <- function(seed, n, validated, m, k, sim_root, threshold = 2L,

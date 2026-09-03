@@ -1,3 +1,6 @@
+# Assembles the RW sandwich variance after replacing the PMM columns of kappa
+# and clustering estimating functions by their realized donor source.
+
 compute_rw_variance <- function(
     fit,
     pmm_kappa,
@@ -11,6 +14,7 @@ compute_rw_variance <- function(
   donor_id <- normalize_donor_id(donor_id, m, n)
 
   u_sum <- Reduce(`+`, lapply(results, `[[`, "U"))
+  # Reused donor values share one source contribution in Omega.
   u_omega_sum <- Reduce(`+`, lapply(seq_len(m), function(p) {
     cluster_U_by_donor(results[[p]]$U, donor_id[, p])
   }))
@@ -31,6 +35,7 @@ compute_rw_variance <- function(
   if (!identical(dim(pmm_kappa), c(nrow(kappa), length(pmm_columns)))) {
     stop("The PMM kappa has incompatible dimensions.")
   }
+  # Non-PMM columns remain the original RW terms.
   kappa[, pmm_columns] <- pmm_kappa
   alpha <- alpha_sum / (n * m)
   d_bar <- d_bar_sum / m

@@ -1,3 +1,5 @@
+# Extracts the reported variance components and Rubin-rule quantities.
+
 var_parts <- function(fit, variance, target) {
   tau <- Reduce(`+`, lapply(fit$results, `[[`, "tau")) / (fit$m * fit$n)
   tau_inverse <- solve(tau)

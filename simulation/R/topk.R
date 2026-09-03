@@ -1,4 +1,5 @@
-# Soft top-k probabilities and derivatives.
+# Constructs soft top-k donor probabilities and their PMM-coefficient
+# derivatives. These probabilities affect variance estimation only.
 
 topk_membership <- function(
     x_obs,
@@ -36,6 +37,7 @@ topk_membership <- function(
   upper_sorted <- rep(Inf, n_obs)
   lower_slope_sorted <- matrix(0, n_obs, n_par)
   upper_slope_sorted <- matrix(0, n_obs, n_par)
+  # Each donor's interval is determined by the midpoint to donors k ranks away.
   lower_sorted[has_lower] <- (
     sorted_prediction[has_lower] +
       sorted_prediction[ranks[has_lower] - donors]
@@ -65,6 +67,8 @@ topk_membership <- function(
   density_lower <- dnorm(z_lower)
   density_upper <- dnorm(z_upper)
   probability <- pnorm(z_upper) - pnorm(z_lower)
+  # Move donor predictions, interval boundaries, and recipient predictions
+  # together when differentiating with respect to the PMM coefficients.
   derivative <- lapply(seq_len(n_par), function(j) {
     upper_difference <- outer(upper_slope[, j], x_mis[, j], "-")
     lower_difference <- outer(lower_slope[, j], x_mis[, j], "-")
@@ -86,7 +90,7 @@ topk_membership <- function(
   ))
   tolerance <- 1e-8 * max(1, donors)
   if (probability_error > tolerance || derivative_error > tolerance) {
-    stop("Joint hard nearest-k membership failed its normalization check.")
+    stop("Top-k membership failed its normalization check.")
   }
 
   intercept <- match("(Intercept)", colnames(x_obs))

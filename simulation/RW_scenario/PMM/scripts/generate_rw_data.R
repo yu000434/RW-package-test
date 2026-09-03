@@ -1,3 +1,5 @@
+# Generates one Robins--Wang simulation dataset and its true coefficient.
+
 make_rw_data <- function(seed, n = 2000, type = "robins_1") {
   set.seed(seed)
   A <- rbinom(n, 1, 1 / 3)

@@ -51,7 +51,8 @@ mkdir -p "$raw_dir" "$log_dir" "$provenance_dir"
 raw_dir=$(cd "$raw_dir" && pwd)
 current_hashes=$(mktemp)
 sha256sum "$task_file" "$script_dir/simulate_batch.R" "$script_dir/run_array_task.sh" \
-  "$pmm_dir/R/run_one.R" "$pmm_dir/../../R/method/"*.R > "$current_hashes"
+  "$script_dir/run_one.R" "$script_dir/generate_gs_data.R" \
+  "$pmm_dir/../../R/"*.R > "$current_hashes"
 if [[ ! -e "$provenance_dir/task_table.csv" ]]; then
   cp "$task_file" "$provenance_dir/task_table.csv"
   mv "$current_hashes" "$provenance_dir/source_sha256.txt"
