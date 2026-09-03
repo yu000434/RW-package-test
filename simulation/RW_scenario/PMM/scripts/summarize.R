@@ -1,9 +1,7 @@
 #!/usr/bin/env Rscript
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 3L) {
-  stop("Usage: Rscript summarize.R TASK_FILE RAW_DIR SUMMARY_FILE")
-}
+if (length(args) != 3L) stop("Usage: Rscript summarize.R TASK_FILE RAW_DIR SUMMARY_FILE")
 tasks <- read.csv(args[[1L]], stringsAsFactors = FALSE)
 raw_dir <- args[[2L]]
 summary_file <- args[[3L]]

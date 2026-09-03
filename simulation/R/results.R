@@ -3,9 +3,7 @@
 var_parts <- function(fit, variance, target) {
   tau <- Reduce(`+`, lapply(fit$results, `[[`, "tau")) / (fit$m * fit$n)
   tau_inverse <- solve(tau)
-  transform <- function(component) {
-    tau_inverse %*% component %*% t(tau_inverse) / fit$n
-  }
+  transform <- function(component) tau_inverse %*% component %*% t(tau_inverse) / fit$n
   correction <- variance$kappa %*% t(variance$d_bar) %*% variance$u_bar_omega
   components <- list(
     omega = variance$omega,
@@ -13,19 +11,13 @@ var_parts <- function(fit, variance, target) {
     cross = (correction + t(correction)) / fit$n
   )
   index <- match(target, rownames(variance$variance))
-  values <- vapply(components, function(component) {
-    transform(component)[index, index]
-  }, numeric(1))
+  values <- vapply(components, function(component) transform(component)[index, index], numeric(1))
   c(total = variance$variance[index, index], values)
 }
 
 rubin_parts <- function(fit, target) {
-  estimates <- vapply(fit$results, function(result) {
-    coef(result$model)[[target]]
-  }, numeric(1))
-  within <- vapply(fit$results, function(result) {
-    vcov(result$model)[target, target]
-  }, numeric(1))
+  estimates <- vapply(fit$results, function(result) coef(result$model)[[target]], numeric(1))
+  within <- vapply(fit$results, function(result) vcov(result$model)[target, target], numeric(1))
   u_bar <- mean(within)
   b <- stats::var(estimates)
   c(estimate = mean(estimates), u_bar = u_bar, b = b,

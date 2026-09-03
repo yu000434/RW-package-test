@@ -1,38 +1,15 @@
 # Runs ordinary MICE PMM matching and records the realized donor IDs and
 # fitted PMM quantities required by the variance estimator.
 
-mice.impute.pmmrw <- function(
-    y,
-    ry,
-    x,
-    wy = NULL,
-    task = "impute",
-    model = NULL,
-    exclude = NULL,
-    ridge = 1e-05,
-    matchtype = 1L,
-    donors = 5L,
-    use.matcher = FALSE,
-    mlocal = 1L,
-    ...) {
-  if (!is.null(exclude)) {
-    stop("`pmmrw` does not currently support `exclude`.", call. = FALSE)
-  }
-  if (is.factor(y)) {
-    stop("`pmmrw` currently supports numeric variables only.", call. = FALSE)
-  }
-  if (isTRUE(use.matcher)) {
-    stop("`pmmrw` currently supports `use.matcher = FALSE` only.", call. = FALSE)
-  }
-  if (!identical(as.integer(mlocal), 1L)) {
-    stop("`pmmrw` currently supports `mlocal = 1` only.", call. = FALSE)
-  }
-  if (is.null(wy)) {
-    wy <- !ry
-  }
-  if (task != "train") {
-    stop("`pmmrw` must be used with `tasks = 'train'`.", call. = FALSE)
-  }
+mice.impute.pmmrw <- function(y, ry, x, wy = NULL, task = "impute", model = NULL,
+                              exclude = NULL, ridge = 1e-05, matchtype = 1L, donors = 5L,
+                              use.matcher = FALSE, mlocal = 1L, ...) {
+  if (!is.null(exclude)) stop("`pmmrw` does not support `exclude`.", call. = FALSE)
+  if (is.factor(y)) stop("`pmmrw` supports numeric variables only.", call. = FALSE)
+  if (isTRUE(use.matcher)) stop("`pmmrw` requires `use.matcher = FALSE`.", call. = FALSE)
+  if (!identical(as.integer(mlocal), 1L)) stop("`pmmrw` requires `mlocal = 1`.", call. = FALSE)
+  if (is.null(wy)) wy <- !ry
+  if (task != "train") stop("`pmmrw` requires `tasks = 'train'`.", call. = FALSE)
   if (is.null(model) || !is.environment(model)) {
     stop("`model` must be an environment; use `tasks = 'train'`.", call. = FALSE)
   }
@@ -55,9 +32,7 @@ mice.impute.pmmrw <- function(
   yhat_obs <- as.vector(x_obs %*% beta_hat)
   yhat_mis <- as.vector(x_mis %*% beta_dot)
 
-  if (is.null(donors)) {
-    donors <- round(length(yhat_obs) / 600 + 7)
-  }
+  if (is.null(donors)) donors <- round(length(yhat_obs) / 600 + 7)
   donors <- max(1L, min(as.integer(donors), length(yhat_obs)))
   # This is MICE's standard donor selection; completed values are unchanged.
   donor_pos <- mice::matchindex(yhat_obs, yhat_mis, donors)
@@ -75,14 +50,8 @@ mice.impute.pmmrw <- function(
   donor_id[wy] <- which(ry)[donor_pos]
 
   # Store matching information without changing the values returned to MICE.
-  model$setup <- list(
-    method = "pmmrw",
-    n = sum(ry),
-    task = task,
-    donors = donors,
-    matchtype = matchtype,
-    ridge = ridge
-  )
+  model$setup <- list(method = "pmmrw", n = sum(ry), task = task, donors = donors,
+                      matchtype = matchtype, ridge = ridge)
   model$beta.hat <- beta_hat
   model$beta.dot <- beta_dot
   model$sigma.dot <- sigma_hat

@@ -1,5 +1,4 @@
-run_one_gs <- function(seed, n, validated, m, k, threshold = 2L,
-                       quadrature_order = 24L) {
+run_one_gs <- function(seed, n, validated, m, k, threshold = 2L, quadrature_order = 24L) {
   gen <- make_gs_data(seed, obs = n, subsample_n = validated, threshold = threshold)
   data <- gen$dat
   data$D <- factor(data$D, levels = c(0, 1))
@@ -25,15 +24,11 @@ run_one_gs <- function(seed, n, validated, m, k, threshold = 2L,
   )
   kappa <- pmm_score$kappa
   donor_id <- rw::extract_donor_id(imps, "A")
-  variance <- compute_rw_variance(
-    fit, kappa, pmm_cols(imps, "A"), donor_id
-  )
+  variance <- compute_rw_variance(fit, kappa, pmm_cols(imps, "A"), donor_id)
   rb <- var_parts(fit, variance, "A")
   rr <- rubin_parts(fit, "A")
   reuse <- donor_use(donor_id)
-  s_mis <- mean(vapply(fit$results, function(result) {
-    sqrt(sum(result$S_mis_imp^2))
-  }, numeric(1)))
+  s_mis <- mean(vapply(fit$results, function(result) sqrt(sum(result$S_mis_imp^2)), numeric(1)))
 
   data.frame(
     seed = seed, scenario = "GS", n = n, validated = validated, m = m, k = k,

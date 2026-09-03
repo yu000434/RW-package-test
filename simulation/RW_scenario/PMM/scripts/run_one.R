@@ -19,20 +19,14 @@ run_one_rw <- function(seed, scenario, n, m, k) {
     imps,
     lm(Z ~ X - 1, subset = if (scenario == "robins_1") A == 1 else rep(TRUE, length(A)))
   )
-  pmm_score <- pmm_kappa_rw(
-    imps, fit, data, "Z", predictors, k, scenario
-  )
+  pmm_score <- pmm_kappa_rw(imps, fit, data, "Z", predictors, k, scenario)
   kappa <- pmm_score$kappa
   donor_id <- rw::extract_donor_id(imps, "Z")
-  variance <- compute_rw_variance(
-    fit, kappa, pmm_cols(imps, "Z"), donor_id
-  )
+  variance <- compute_rw_variance(fit, kappa, pmm_cols(imps, "Z"), donor_id)
   rb <- var_parts(fit, variance, "X")
   rr <- rubin_parts(fit, "X")
   reuse <- donor_use(donor_id)
-  s_mis <- mean(vapply(fit$results, function(result) {
-    sqrt(sum(result$S_mis_imp^2))
-  }, numeric(1)))
+  s_mis <- mean(vapply(fit$results, function(result) sqrt(sum(result$S_mis_imp^2)), numeric(1)))
 
   data.frame(
     seed = seed, scenario = scenario, n = n, validated = NA_integer_, m = m, k = k,

@@ -1,11 +1,7 @@
 # Assembles the RW variance after replacing the PMM columns of kappa
 # and clustering estimating functions by their realized donor source.
 
-compute_rw_variance <- function(
-    fit,
-    pmm_kappa,
-    pmm_columns,
-    donor_id) {
+compute_rw_variance <- function(fit, pmm_kappa, pmm_columns, donor_id) {
   results <- fit$results
   m <- fit$m
   n <- fit$n
@@ -24,10 +20,7 @@ compute_rw_variance <- function(
 
   kappa_sum <- alpha_sum <- d_bar_sum <- 0
   for (p in seq_len(m)) {
-    kappa_sum <- kappa_sum + crossprod(
-      results[[p]]$U,
-      results[[p]]$S_mis_imp
-    )
+    kappa_sum <- kappa_sum + crossprod(results[[p]]$U, results[[p]]$S_mis_imp)
     alpha_sum <- alpha_sum + crossprod(results[[p]]$d)
     d_bar_sum <- d_bar_sum + results[[p]]$d
   }
@@ -48,13 +41,6 @@ compute_rw_variance <- function(
   tau_inv <- solve(tau)
   variance <- tau_inv %*% delta %*% t(tau_inv) / n
 
-  list(
-    variance = variance,
-    kappa = kappa,
-    alpha = alpha,
-    d_bar = d_bar,
-    omega = omega,
-    u_bar = u_sum / m,
-    u_bar_omega = u_bar_omega
-  )
+  list(variance = variance, kappa = kappa, alpha = alpha, d_bar = d_bar,
+       omega = omega, u_bar = u_sum / m, u_bar_omega = u_bar_omega)
 }

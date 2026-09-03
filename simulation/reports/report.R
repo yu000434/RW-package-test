@@ -1,9 +1,7 @@
 #!/usr/bin/env Rscript
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 2L) {
-  stop("Usage: Rscript make_draft_style_report.R RESULTS_DIR REPORTS_DIR")
-}
+if (length(args) != 2L) stop("Usage: Rscript report.R RESULTS_DIR REPORTS_DIR")
 
 results_dir <- normalizePath(args[[1L]])
 reports_dir <- args[[2L]]
@@ -138,7 +136,7 @@ table_header_rw <- c(
 method_pages <- c(
   "\\begin{center}",
   "{\\Large MICE PMM Variance Estimation}\\\\[4pt]",
-  "{\\normalsize Standard MICE PMM with a soft top-k donor-source correction}",
+  "{\\normalsize Standard MICE PMM with donor-source correction}",
   "\\end{center}",
   "\\section*{1. Goal and notation}",
   "For each simulation replicate, we create $m$ completed data sets with ordinary \\texttt{mice::mice(method = \"pmm\")}. The completed values and realized donor IDs are exactly those produced by standard MICE PMM. If donor $j$ is selected for recipient $i$, the completed value for $i$ is the observed value of $j$.",
@@ -165,7 +163,7 @@ method_pages <- c(
   "\\]",
   "The remaining task is to construct the PMM part of $\\widehat{\\kappa}$ in a way that reflects the matching rule while preserving standard MICE PMM draws.",
   "\\clearpage",
-  "\\section*{3. Soft top-k working probability}",
+  "\\section*{3. PMM matching probability for the variance score}",
   "For a missing recipient $i$ and an observed donor $j$, standard PMM selects uniformly from the recipient's nearest-$k$ donor set. That selection rule is discontinuous as the PMM regression coefficient $\\psi$ changes. We use a smooth probability only for the variance score.",
   "",
   "Let $l_j$ and $u_j$ be the lower and upper prediction-score boundaries for donor $j$ to enter a nearest-$k$ set. Let $\\eta_i$ be the recipient's PMM prediction and $s_i$ be the fitted posterior prediction standard deviation. The working probability is",
