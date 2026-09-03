@@ -1,20 +1,23 @@
 #!/usr/bin/env Rscript
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) < 3L || length(args) > 4L) {
-  stop("Usage: Rscript combine_results.R TASK_FILE RAW_DIR SUMMARY_FILE [CELL_ID]")
+if (length(args) != 3L) {
+  stop("Usage: Rscript summarize.R TASK_FILE RAW_DIR SUMMARY_FILE")
 }
 tasks <- read.csv(args[[1L]], stringsAsFactors = FALSE)
 raw_dir <- args[[2L]]
 summary_file <- args[[3L]]
-if (length(args) == 4L) {
-  cell_id <- as.integer(args[[4L]])
-  tasks <- tasks[tasks$cell_id == cell_id, , drop = FALSE]
-  if (nrow(tasks) == 0L) stop("No tasks found for cell_id ", cell_id)
-}
-paths <- file.path(raw_dir, sprintf("gs_task%04d.csv", tasks$task_id))
-if (any(!file.exists(paths))) stop("All terminal task files are required before combining.")
+paths <- file.path(raw_dir, sprintf("rw_task%04d.csv", tasks$task_id))
+if (any(!file.exists(paths))) stop("All task files are required before summarizing.")
 raw <- do.call(rbind, lapply(paths, read.csv, stringsAsFactors = FALSE))
+if (nrow(raw) != 6L * sum(tasks$reps) ||
+    anyDuplicated(raw[c("scenario", "seed")])) {
+  stop("The raw RW results are incomplete or duplicated.")
+}
+if (any(!is.finite(raw$estimate)) || any(raw$rb_total_var <= 0) ||
+    any(raw$rr_total_var <= 0)) {
+  stop("The raw RW results contain an invalid estimate or variance.")
+}
 
 summarize_cell <- function(x) {
   if (nrow(x) < 2L) stop("At least two replications are required for a summary.")
@@ -28,7 +31,7 @@ summarize_cell <- function(x) {
   rb_beta0 <- coverage_summary(abs(x$estimate - x$beta0) <= 1.96 * x$rb_se)
   rr_beta0 <- coverage_summary(abs(x$estimate - x$beta0) <= 1.96 * x$rr_se)
   data.frame(
-    scenario = "GS", n = x$n[[1L]], validated = x$validated[[1L]],
+    scenario = x$scenario[[1L]], n = x$n[[1L]], validated = NA_integer_,
     m = x$m[[1L]], k = x$k[[1L]], reps = nrow(x),
     mean_estimate = center, bias = mean(x$estimate - x$beta0), empirical_sd = stats::sd(x$estimate),
     mean_rb_se = mean(x$rb_se), mean_rr_se = mean(x$rr_se),
@@ -53,8 +56,7 @@ summarize_cell <- function(x) {
   )
 }
 
-key <- interaction(raw$n, raw$validated, raw$m, raw$k, drop = TRUE)
-summary <- do.call(rbind, lapply(split(raw, key), summarize_cell))
+summary <- do.call(rbind, lapply(split(raw, raw$scenario), summarize_cell))
 dir.create(dirname(summary_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(summary, summary_file, row.names = FALSE)
 cat("SUMMARY_PATH=", normalizePath(summary_file), "\n", sep = "")

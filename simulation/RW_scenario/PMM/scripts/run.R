@@ -2,7 +2,7 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 3L) {
-  stop("Usage: Rscript simulate_batch.R TASK_FILE TASK_ID RAW_DIR")
+  stop("Usage: Rscript run.R TASK_FILE TASK_ID RAW_DIR")
 }
 task_file <- args[[1L]]
 task_id <- as.integer(args[[2L]])
