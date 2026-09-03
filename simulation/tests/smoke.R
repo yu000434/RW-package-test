@@ -23,13 +23,17 @@ compare_row <- function(out, path, seed, scenario = NULL) {
   }
 }
 
+method_files <- c("pmmrw.R", "topk.R", "rw_variance.R", "metrics.R", "rb.R")
+invisible(lapply(file.path(sim, "R", method_files), source))
+source(file.path(sim, "GS_scenario", "PMM", "scripts", "generate_gs_data.R"))
 source(file.path(sim, "GS_scenario", "PMM", "scripts", "run_one.R"))
-gs <- run_one_gs(8500000L, 2000L, 500L, 5L, 5L, sim)
+gs <- run_one_gs(8500000L, 2000L, 500L, 5L, 5L)
 compare_row(gs, file.path(sim, "results", "gs5_5", "raw", "gs_task0001.csv"), 8500000L)
 cat("GS_SMOKE=PASS\n")
 
+source(file.path(sim, "RW_scenario", "PMM", "scripts", "generate_rw_data.R"))
 source(file.path(sim, "RW_scenario", "PMM", "scripts", "run_one.R"))
-rw <- run_one_rw(12000000L, "robins_1", 150L, 20L, 5L, sim)
+rw <- run_one_rw(12000000L, "robins_1", 150L, 20L, 5L)
 compare_row(rw, file.path(sim, "results", "rw150_20_5", "raw", "rw_task0001.csv"),
             12000000L, "robins_1")
 cat("RW_SMOKE=PASS\n")

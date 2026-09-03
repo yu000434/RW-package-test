@@ -1,14 +1,4 @@
-load_rw_method <- function(sim_root) {
-  source(file.path(sim_root, "R", "pmmrw.R"))
-  source(file.path(sim_root, "R", "topk.R"))
-  source(file.path(sim_root, "R", "rw_variance.R"))
-  source(file.path(sim_root, "R", "metrics.R"))
-  source(file.path(sim_root, "R", "rb.R"))
-  source(file.path(sim_root, "RW_scenario", "PMM", "scripts", "generate_rw_data.R"))
-}
-
-run_one_rw <- function(seed, scenario, n, m, k, sim_root) {
-  load_rw_method(sim_root)
+run_one_rw <- function(seed, scenario, n, m, k) {
   gen <- make_rw_data(seed, n = n, type = scenario)
   data <- gen$dat
   predictors <- c("X", "A")
@@ -33,12 +23,13 @@ run_one_rw <- function(seed, scenario, n, m, k, sim_root) {
     imps, fit, data, "Z", predictors, k, scenario
   )
   kappa <- rb_score$kappa
+  donor_id <- rw::extract_donor_id(imps, "Z")
   variance <- compute_rw_variance(
-    fit, kappa, pmm_cols(imps, "Z"), rw::extract_donor_id(imps, "Z")
+    fit, kappa, pmm_cols(imps, "Z"), donor_id
   )
   rb <- var_parts(fit, variance, "X")
   rr <- rubin_parts(fit, "X")
-  reuse <- donor_use(rw::extract_donor_id(imps, "Z"))
+  reuse <- donor_use(donor_id)
   s_mis <- mean(vapply(fit$results, function(result) {
     sqrt(sum(result$S_mis_imp^2))
   }, numeric(1)))

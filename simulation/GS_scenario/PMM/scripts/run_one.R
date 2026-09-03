@@ -1,15 +1,5 @@
-load_gs_method <- function(sim_root) {
-  source(file.path(sim_root, "R", "pmmrw.R"))
-  source(file.path(sim_root, "R", "topk.R"))
-  source(file.path(sim_root, "R", "rw_variance.R"))
-  source(file.path(sim_root, "R", "metrics.R"))
-  source(file.path(sim_root, "R", "rb.R"))
-  source(file.path(sim_root, "GS_scenario", "PMM", "scripts", "generate_gs_data.R"))
-}
-
-run_one_gs <- function(seed, n, validated, m, k, sim_root, threshold = 2L,
+run_one_gs <- function(seed, n, validated, m, k, threshold = 2L,
                        quadrature_order = 24L) {
-  load_gs_method(sim_root)
   gen <- make_gs_data(seed, obs = n, subsample_n = validated, threshold = threshold)
   data <- gen$dat
   data$D <- factor(data$D, levels = c(0, 1))
@@ -34,12 +24,13 @@ run_one_gs <- function(seed, n, validated, m, k, sim_root, threshold = 2L,
     quadrature_order = quadrature_order
   )
   kappa <- rb_score$kappa
+  donor_id <- rw::extract_donor_id(imps, "A")
   variance <- compute_rw_variance(
-    fit, kappa, pmm_cols(imps, "A"), rw::extract_donor_id(imps, "A")
+    fit, kappa, pmm_cols(imps, "A"), donor_id
   )
   rb <- var_parts(fit, variance, "A")
   rr <- rubin_parts(fit, "A")
-  reuse <- donor_use(rw::extract_donor_id(imps, "A"))
+  reuse <- donor_use(donor_id)
   s_mis <- mean(vapply(fit$results, function(result) {
     sqrt(sum(result$S_mis_imp^2))
   }, numeric(1)))

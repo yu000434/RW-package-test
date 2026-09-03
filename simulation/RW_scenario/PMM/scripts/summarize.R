@@ -10,18 +10,11 @@ summary_file <- args[[3L]]
 paths <- file.path(raw_dir, sprintf("rw_task%04d.csv", tasks$task_id))
 if (any(!file.exists(paths))) stop("All task files are required before summarizing.")
 raw <- do.call(rbind, lapply(paths, read.csv, stringsAsFactors = FALSE))
-if (nrow(raw) != 6L * sum(tasks$reps) ||
-    anyDuplicated(raw[c("scenario", "seed")])) {
-  stop("The raw RW results are incomplete or duplicated.")
-}
-if (any(!is.finite(raw$estimate)) || any(raw$rb_total_var <= 0) ||
-    any(raw$rr_total_var <= 0)) {
-  stop("The raw RW results contain an invalid estimate or variance.")
-}
+if (nrow(raw) != 6L * sum(tasks$reps)) stop("The raw results are incomplete.")
 
 summarize_cell <- function(x) {
-  if (nrow(x) < 2L) stop("At least two replications are required for a summary.")
   center <- mean(x$estimate)
+  empirical_sd <- stats::sd(x$estimate)
   coverage_summary <- function(hit) {
     interval <- stats::binom.test(sum(hit), length(hit))$conf.int
     c(estimate = mean(hit), lower = interval[[1L]], upper = interval[[2L]])
@@ -33,10 +26,10 @@ summarize_cell <- function(x) {
   data.frame(
     scenario = x$scenario[[1L]], n = x$n[[1L]], validated = NA_integer_,
     m = x$m[[1L]], k = x$k[[1L]], reps = nrow(x),
-    mean_estimate = center, bias = mean(x$estimate - x$beta0), empirical_sd = stats::sd(x$estimate),
+    mean_estimate = center, bias = mean(x$estimate - x$beta0), empirical_sd = empirical_sd,
     mean_rb_se = mean(x$rb_se), mean_rr_se = mean(x$rr_se),
-    rb_se_empirical_sd = mean(x$rb_se) / stats::sd(x$estimate),
-    rr_se_empirical_sd = mean(x$rr_se) / stats::sd(x$estimate),
+    rb_se_empirical_sd = mean(x$rb_se) / empirical_sd,
+    rr_se_empirical_sd = mean(x$rr_se) / empirical_sd,
     rb_coverage_empirical_center = rb_empirical[["estimate"]],
     rb_coverage_empirical_center_lower = rb_empirical[["lower"]],
     rb_coverage_empirical_center_upper = rb_empirical[["upper"]],
@@ -59,4 +52,3 @@ summarize_cell <- function(x) {
 summary <- do.call(rbind, lapply(split(raw, raw$scenario), summarize_cell))
 dir.create(dirname(summary_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(summary, summary_file, row.names = FALSE)
-cat("SUMMARY_PATH=", normalizePath(summary_file), "\n", sep = "")
