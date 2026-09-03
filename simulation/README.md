@@ -30,11 +30,27 @@ variance and standard error.
 
 | File | Purpose |
 |---|---|
+| `analysis.R` | Constructs the analysis components `U` and `tau` for `lm` and `glm`. |
+| `parametric.R` | Constructs `S_mis` and `d` for the MICE `norm` and `logreg` models. |
+| `pmm.R` | Constructs the PMM imputation components, matching derivatives, PMM `kappa`, and donor information. |
 | `pmmrw.R` | Runs ordinary MICE PMM and records the realized donor IDs and fitted PMM quantities. |
-| `pmm_score.R` | Calculates PMM matching probabilities, their derivatives, and the PMM cross term for the RW and GS analyses. |
-| `rw_fit.R` | Constructs the analysis and imputation scores for `norm`, `logreg`, and recorded PMM imputations. |
+| `fit.R` | Evaluates the analysis and imputation components in every completed dataset. |
 | `variance.R` | Assembles the ordinary RW variance or its PMM donor-source version. |
 | `results.R` | Extracts variance components, Rubin-rule results, and donor-reuse summaries. |
+
+The component flow is:
+
+```text
+analysis.R                 -> U, tau
+parametric.R or pmm.R      -> S_mis, d
+pmm.R                      -> PMM kappa and donor information when needed
+fit.R                      -> components for all completed datasets
+variance.R                 -> Omega, kappa, alpha, d_bar, and the RW variance
+```
+
+The two imputation files share the same `S_mis` and `d` interface. A simulation
+may use both: in the GS PMM setting, `A` uses `pmm.R`, while the logistic
+imputation of `D` uses `parametric.R`.
 
 ## Simulation scripts
 

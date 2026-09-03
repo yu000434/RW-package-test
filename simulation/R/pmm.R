@@ -1,4 +1,14 @@
-# Constructs PMM matching probabilities and their coefficient derivatives.
+# Constructs the PMM imputation and cross components used by the RW variance.
+
+pmm_component <- function(model) {
+  list(S_mis_imp = model$pmm_score, d = model$pmm_d)
+}
+
+pmm_donors <- function(imps, variable) {
+  do.call(cbind, lapply(seq_len(imps$m), function(p) {
+    imps$models[[variable]][[p]]$donor_id
+  }))
+}
 
 topk_membership <- function(x_obs, x_mis, beta_hat, beta_dot, covariance, donors) {
   x_obs <- as.matrix(x_obs)
