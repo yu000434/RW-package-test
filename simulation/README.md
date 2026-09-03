@@ -1,9 +1,9 @@
 # RW PMM simulation
 
-This directory reproduces the simulations for
-`MICE_soft_PMM_donor_source_research`. MICE PMM completed values and realized
-donor IDs are retained exactly. Soft top-k probabilities are used only in the
-donor-source-corrected variance estimate.
+This directory reproduces the standard MICE PMM simulations with the
+donor-source-corrected variance estimator. MICE PMM completed values and
+realized donor IDs are retained exactly. Smoothed matching probabilities are
+used only to construct the PMM score for variance estimation.
 
 ## Structure
 
@@ -25,8 +25,7 @@ their data-generating and analysis models differ. Both use the same files in
 | File | Purpose |
 |---|---|
 | `pmmrw.R` | Runs ordinary MICE PMM and records the realized donor IDs and fitted PMM quantities. |
-| `soft_pmm.R` | Calculates soft-PMM donor probabilities and their derivatives. |
-| `pmm_score.R` | Calculates the PMM cross term for the RW and GS analyses. |
+| `pmm_score.R` | Calculates PMM matching probabilities, their derivatives, and the PMM cross term for the RW and GS analyses. |
 | `variance.R` | Applies donor-source clustering and assembles the corrected RW variance. |
 | `results.R` | Extracts variance components, Rubin-rule results, and donor-reuse summaries. |
 
