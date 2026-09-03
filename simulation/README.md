@@ -25,10 +25,10 @@ their data-generating and analysis models differ. Both use the same files in
 | File | Purpose |
 |---|---|
 | `pmmrw.R` | Runs ordinary MICE PMM and records the realized donor IDs and fitted PMM quantities. |
-| `topk.R` | Calculates soft top-k donor probabilities and their derivatives. |
-| `rb.R` | Calculates the Rao--Blackwellized PMM cross term for the RW and GS analyses. |
-| `rw_variance.R` | Applies donor-source clustering and assembles the corrected RW variance. |
-| `metrics.R` | Extracts variance components, Rubin-rule results, and donor-reuse summaries. |
+| `soft_pmm.R` | Calculates soft-PMM donor probabilities and their derivatives. |
+| `pmm_score.R` | Calculates the PMM cross term for the RW and GS analyses. |
+| `variance.R` | Applies donor-source clustering and assembles the corrected RW variance. |
+| `results.R` | Extracts variance components, Rubin-rule results, and donor-reuse summaries. |
 
 ## Simulation scripts
 

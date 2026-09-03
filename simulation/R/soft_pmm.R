@@ -1,5 +1,5 @@
-# Constructs soft top-k donor probabilities and their PMM-coefficient
-# derivatives. These probabilities affect variance estimation only.
+# Constructs soft-PMM donor probabilities and their PMM-coefficient
+# derivatives.
 
 topk_membership <- function(
     x_obs,
@@ -107,12 +107,6 @@ topk_membership <- function(
     probability = probability,
     derivative = derivative,
     donor_prediction = donor_prediction,
-    target = target,
-    smooth_sd = smooth_sd,
-    lower = lower,
-    upper = upper,
-    lower_slope = lower_slope,
-    upper_slope = upper_slope,
     probability_error = probability_error,
     derivative_error = derivative_error,
     intercept_error = intercept_error
@@ -153,12 +147,8 @@ pmm_inputs <- function(
   )
 
   list(
-    observed = observed,
     missing = missing,
-    x_obs = x_obs,
     x_mis = x_mis,
-    y_obs = data[[variable]][observed],
-    covariance = covariance,
     membership = membership
   )
 }

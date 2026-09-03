@@ -38,7 +38,6 @@ mice.impute.pmmrw <- function(
   }
 
   n <- length(y)
-  row_id <- seq_len(n)
   x <- cbind(`(Intercept)` = 1, as.matrix(x))
   norm_draw <- utils::getFromNamespace(".norm.draw", "mice")
   parm <- norm_draw(y, ry, x, ridge = ridge, ...)
@@ -73,7 +72,7 @@ mice.impute.pmmrw <- function(
   pmm_d <- matrix(0, n, ncol(x), dimnames = list(NULL, colnames(x)))
   pmm_d[ry, ] <- d_obs
   donor_id <- rep(NA_integer_, n)
-  donor_id[wy] <- row_id[ry][donor_pos]
+  donor_id[wy] <- which(ry)[donor_pos]
 
   # Store matching information without changing the values returned to MICE.
   model$setup <- list(
@@ -82,8 +81,7 @@ mice.impute.pmmrw <- function(
     task = task,
     donors = donors,
     matchtype = matchtype,
-    ridge = ridge,
-    experimental_kappa = "direct_joint_integrated_downstream"
+    ridge = ridge
   )
   model$beta.hat <- beta_hat
   model$beta.dot <- beta_dot

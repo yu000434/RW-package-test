@@ -1,4 +1,4 @@
-# Extracts the reported variance components and Rubin-rule quantities.
+# Extracts the quantities saved in the simulation results.
 
 var_parts <- function(fit, variance, target) {
   tau <- Reduce(`+`, lapply(fit$results, `[[`, "tau")) / (fit$m * fit$n)

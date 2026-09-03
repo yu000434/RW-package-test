@@ -1,6 +1,6 @@
-# Computes the Rao--Blackwellized PMM cross term for the RW and GS analyses.
+# Computes the PMM cross term for the RW and GS analyses.
 
-rb_kappa_rw <- function(
+pmm_kappa_rw <- function(
     imps,
     fit,
     data,
@@ -74,10 +74,6 @@ rb_kappa_rw <- function(
 
 # The GS score requires one-dimensional normal integration over donor values.
 gauss_legendre_rule <- function(order) {
-  order <- as.integer(order)
-  if (length(order) != 1L || is.na(order) || order < 2L) {
-    stop("`order` must be an integer of at least two.")
-  }
   index <- seq_len(order - 1L)
   off_diagonal <- index / sqrt(4 * index^2 - 1)
   jacobi <- matrix(0, order, order)
@@ -91,7 +87,7 @@ gauss_legendre_rule <- function(order) {
   )
 }
 
-normal_integrated_gs_score <- function(
+gs_expected_score <- function(
     donor_mean,
     donor_sd,
     downstream_base,
@@ -101,22 +97,6 @@ normal_integrated_gs_score <- function(
     observed_downstream,
     quadrature_order = 32L,
     normal_bound = 10) {
-  donor_mean <- as.numeric(donor_mean)
-  downstream_base <- as.numeric(downstream_base)
-  analysis_coefficient <- as.numeric(analysis_coefficient)
-  if (length(donor_sd) != 1L || !is.finite(donor_sd) || donor_sd <= 0) {
-    stop("`donor_sd` must be one positive finite value.")
-  }
-  if (length(analysis_coefficient) != 2L) {
-    stop("The GS analysis must have an intercept and one PMM coefficient.")
-  }
-  if (!is.finite(normal_bound) || normal_bound < 6) {
-    stop("`normal_bound` must be finite and at least six.")
-  }
-  if (length(observed_downstream) != length(downstream_base)) {
-    stop("The downstream outcome and predictor vectors have different lengths.")
-  }
-
   rule <- gauss_legendre_rule(quadrature_order)
   lower <- pmax((threshold - donor_mean) / donor_sd, -normal_bound)
   upper <- rep(normal_bound, length(donor_mean))
@@ -160,13 +140,11 @@ normal_integrated_gs_score <- function(
 
   list(
     score = list(expected_intercept_score, expected_slope_score),
-    omitted_tail_bound = 2 * pnorm(-normal_bound),
-    minimum_integrated_mass = min(rowSums(integration_weight)),
-    maximum_integrated_mass = max(rowSums(integration_weight))
+    omitted_tail_bound = 2 * pnorm(-normal_bound)
   )
 }
 
-rb_kappa_gs <- function(
+pmm_kappa_gs <- function(
     imps,
     fit,
     data,
@@ -218,7 +196,7 @@ rb_kappa_gs <- function(
     }
 
     # Integrate the downstream logistic score under the fitted PMM model.
-    conditional <- normal_integrated_gs_score(
+    conditional <- gs_expected_score(
       inputs$membership$donor_prediction,
       imps$models[[variable]][[p]]$sigma.dot,
       downstream_base,

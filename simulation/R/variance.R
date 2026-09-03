@@ -1,4 +1,4 @@
-# Assembles the RW sandwich variance after replacing the PMM columns of kappa
+# Assembles the RW variance after replacing the PMM columns of kappa
 # and clustering estimating functions by their realized donor source.
 
 compute_rw_variance <- function(
@@ -54,7 +54,6 @@ compute_rw_variance <- function(
     alpha = alpha,
     d_bar = d_bar,
     omega = omega,
-    delta = delta,
     u_bar = u_sum / m,
     u_bar_omega = u_bar_omega
   )

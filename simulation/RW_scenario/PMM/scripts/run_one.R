@@ -19,10 +19,10 @@ run_one_rw <- function(seed, scenario, n, m, k) {
     imps,
     lm(Z ~ X - 1, subset = if (scenario == "robins_1") A == 1 else rep(TRUE, length(A)))
   )
-  rb_score <- rb_kappa_rw(
+  pmm_score <- pmm_kappa_rw(
     imps, fit, data, "Z", predictors, k, scenario
   )
-  kappa <- rb_score$kappa
+  kappa <- pmm_score$kappa
   donor_id <- rw::extract_donor_id(imps, "Z")
   variance <- compute_rw_variance(
     fit, kappa, pmm_cols(imps, "Z"), donor_id
@@ -47,9 +47,9 @@ run_one_rw <- function(seed, scenario, n, m, k) {
     rr_total_var = rr[["total"]], rr_u_bar = rr[["u_bar"]], rr_b = rr[["b"]],
     n_imputed = reuse[["n_imputed"]], n_unique_donors = reuse[["n_unique_donors"]],
     max_donor_reuse = reuse[["max_donor_reuse"]],
-    max_probability_error = rb_score$diagnostics[["max_membership_probability_error"]],
-    max_derivative_error = rb_score$diagnostics[["max_membership_derivative_error"]],
-    max_intercept_error = rb_score$diagnostics[["max_intercept_derivative"]],
+    max_probability_error = pmm_score$diagnostics[["max_membership_probability_error"]],
+    max_derivative_error = pmm_score$diagnostics[["max_membership_derivative_error"]],
+    max_intercept_error = pmm_score$diagnostics[["max_intercept_derivative"]],
     max_quadrature_tail_bound = NA_real_
   )
 }

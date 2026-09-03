@@ -19,11 +19,11 @@ run_one_gs <- function(seed, n, validated, m, k, threshold = 2L,
     tasks = "train", blots = list(A = list(donors = k)), print = FALSE
   )
   fit <- rw::with_rw(imps, glm(D ~ A, family = binomial(), subset = A > threshold))
-  rb_score <- rb_kappa_gs(
+  pmm_score <- pmm_kappa_gs(
     imps, fit, data, "A", predictors, k, threshold = threshold,
     quadrature_order = quadrature_order
   )
-  kappa <- rb_score$kappa
+  kappa <- pmm_score$kappa
   donor_id <- rw::extract_donor_id(imps, "A")
   variance <- compute_rw_variance(
     fit, kappa, pmm_cols(imps, "A"), donor_id
@@ -48,9 +48,9 @@ run_one_gs <- function(seed, n, validated, m, k, threshold = 2L,
     rr_total_var = rr[["total"]], rr_u_bar = rr[["u_bar"]], rr_b = rr[["b"]],
     n_imputed = reuse[["n_imputed"]], n_unique_donors = reuse[["n_unique_donors"]],
     max_donor_reuse = reuse[["max_donor_reuse"]],
-    max_probability_error = rb_score$diagnostics[["max_membership_probability_error"]],
-    max_derivative_error = rb_score$diagnostics[["max_membership_derivative_error"]],
-    max_intercept_error = rb_score$diagnostics[["max_intercept_derivative"]],
-    max_quadrature_tail_bound = rb_score$diagnostics[["max_quadrature_tail_bound"]]
+    max_probability_error = pmm_score$diagnostics[["max_membership_probability_error"]],
+    max_derivative_error = pmm_score$diagnostics[["max_membership_derivative_error"]],
+    max_intercept_error = pmm_score$diagnostics[["max_intercept_derivative"]],
+    max_quadrature_tail_bound = pmm_score$diagnostics[["max_quadrature_tail_bound"]]
   )
 }
