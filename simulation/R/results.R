@@ -31,3 +31,14 @@ donor_use <- function(donor_id) {
   c(n_imputed = length(donor_id), n_unique_donors = length(counts),
     max_donor_reuse = max(counts))
 }
+
+score_correlation <- function(fit) {
+  one <- function(u) {
+    u <- u[, apply(u, 2L, stats::sd) > 0, drop = FALSE]
+    if (ncol(u) < 2L) return(NA_real_)
+    correlation <- stats::cor(u)
+    stats::median(abs(correlation[upper.tri(correlation)]))
+  }
+  values <- vapply(fit$results, function(result) one(result$U), numeric(1))
+  if (all(is.na(values))) NA_real_ else stats::median(values, na.rm = TRUE)
+}

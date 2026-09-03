@@ -15,6 +15,7 @@ paths <- file.path(raw_dir, sprintf("gs_task%04d.csv", tasks$task_id))
 if (any(!file.exists(paths))) stop("All task files are required before summarizing.")
 raw <- do.call(rbind, lapply(paths, read.csv, stringsAsFactors = FALSE))
 if (nrow(raw) != sum(tasks$reps)) stop("The raw results are incomplete.")
+if (!"imputation" %in% names(raw)) raw$imputation <- "pmm"
 
 summarize_cell <- function(x) {
   center <- mean(x$estimate)
@@ -28,7 +29,8 @@ summarize_cell <- function(x) {
   rb_beta0 <- coverage_summary(abs(x$estimate - x$beta0) <= 1.96 * x$rb_se)
   rr_beta0 <- coverage_summary(abs(x$estimate - x$beta0) <= 1.96 * x$rr_se)
   data.frame(
-    scenario = "GS", n = x$n[[1L]], validated = x$validated[[1L]],
+    scenario = "GS", imputation = x$imputation[[1L]],
+    n = x$n[[1L]], validated = x$validated[[1L]],
     m = x$m[[1L]], k = x$k[[1L]], reps = nrow(x),
     mean_estimate = center, bias = mean(x$estimate - x$beta0), empirical_sd = empirical_sd,
     mean_rb_se = mean(x$rb_se), mean_rr_se = mean(x$rr_se),
@@ -53,7 +55,8 @@ summarize_cell <- function(x) {
   )
 }
 
-key <- interaction(raw$n, raw$validated, raw$m, raw$k, drop = TRUE)
+key <- interaction(raw$imputation, raw$n, raw$validated, raw$m,
+                   ifelse(is.na(raw$k), 0L, raw$k), drop = TRUE)
 summary <- do.call(rbind, lapply(split(raw, key), summarize_cell))
 dir.create(dirname(summary_file), recursive = TRUE, showWarnings = FALSE)
 write.csv(summary, summary_file, row.names = FALSE)

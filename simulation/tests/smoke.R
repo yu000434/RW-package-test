@@ -8,9 +8,9 @@ compare_row <- function(out, path, seed, scenario = NULL) {
   ref <- read.csv(path, stringsAsFactors = FALSE)
   ref <- ref[ref$seed == seed, , drop = FALSE]
   if (!is.null(scenario)) ref <- ref[ref$scenario == scenario, , drop = FALSE]
-  ref <- ref[, names(out), drop = FALSE]
   stopifnot(nrow(ref) == 1L)
-  for (name in names(out)) {
+  fields <- intersect(names(out), names(ref))
+  for (name in fields) {
     if (is.numeric(out[[name]])) {
       stopifnot(identical(is.na(out[[name]]), is.na(ref[[name]])))
       keep <- !is.na(out[[name]])
@@ -25,15 +25,27 @@ compare_row <- function(out, path, seed, scenario = NULL) {
 
 method_files <- c("pmmrw.R", "pmm_score.R", "variance.R", "results.R")
 invisible(lapply(file.path(sim, "R", method_files), source))
-source(file.path(sim, "GS_scenario", "PMM", "scripts", "generate_gs_data.R"))
-source(file.path(sim, "GS_scenario", "PMM", "scripts", "run_one.R"))
+source(file.path(sim, "GS_scenario", "scripts", "generate_gs_data.R"))
+source(file.path(sim, "GS_scenario", "scripts", "run_one.R"))
 gs <- run_one_gs(8500000L, 2000L, 500L, 5L, 5L)
 compare_row(gs, file.path(sim, "results", "gs5_5", "raw", "gs_task0001.csv"), 8500000L)
-cat("GS_SMOKE=PASS\n")
+gs_parametric <- run_one_gs(303100000L, 2000L, 500L, 5L, imputation = "parametric")
+gs_expected <- c(estimate = 0.768114092516404, rb_se = 0.111246300044035,
+                 rr_se = 0.194773158820324, beta0 = 0.783182537588776,
+                 mean_analysis_n = 537.8,
+                 median_abs_score_component_corr = 0.968917291713887)
+stopifnot(isTRUE(all.equal(unlist(gs_parametric[names(gs_expected)]), gs_expected,
+                           tolerance = 1e-12, check.attributes = FALSE)))
+cat("GS_PMM_AND_PARAMETRIC_SMOKE=PASS\n")
 
-source(file.path(sim, "RW_scenario", "PMM", "scripts", "generate_rw_data.R"))
-source(file.path(sim, "RW_scenario", "PMM", "scripts", "run_one.R"))
+source(file.path(sim, "RW_scenario", "scripts", "generate_rw_data.R"))
+source(file.path(sim, "RW_scenario", "scripts", "run_one.R"))
 rw <- run_one_rw(12000000L, "robins_1", 150L, 20L, 5L)
 compare_row(rw, file.path(sim, "results", "rw150_20_5", "raw", "rw_task0001.csv"),
             12000000L, "robins_1")
-cat("RW_SMOKE=PASS\n")
+rw_parametric <- run_one_rw(1001L, "robins_1", 150L, 20L, imputation = "parametric")
+rw_expected <- c(estimate = 0.79821491158947, rb_se = 0.131276675826991,
+                 rr_se = 0.139343439579577)
+stopifnot(isTRUE(all.equal(unlist(rw_parametric[names(rw_expected)]), rw_expected,
+                           tolerance = 1e-12, check.attributes = FALSE)))
+cat("RW_PMM_AND_PARAMETRIC_SMOKE=PASS\n")

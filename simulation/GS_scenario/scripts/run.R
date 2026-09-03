@@ -4,11 +4,11 @@ args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 3L) stop("Usage: Rscript run.R TASK_FILE TASK_ID RAW_DIR")
 
 script <- sub("^--file=", "", commandArgs()[grep("^--file=", commandArgs())])
-root <- normalizePath(file.path(dirname(script), "..", "..", ".."))
+root <- normalizePath(file.path(dirname(script), "..", ".."))
 files <- c("pmmrw.R", "pmm_score.R", "variance.R", "results.R")
 invisible(lapply(file.path(root, "R", files), source))
-source(file.path(root, "GS_scenario", "PMM", "scripts", "generate_gs_data.R"))
-source(file.path(root, "GS_scenario", "PMM", "scripts", "run_one.R"))
+source(file.path(root, "GS_scenario", "scripts", "generate_gs_data.R"))
+source(file.path(root, "GS_scenario", "scripts", "run_one.R"))
 
 task_id <- as.integer(args[[2L]])
 tasks <- read.csv(args[[1L]], stringsAsFactors = FALSE)
@@ -17,7 +17,7 @@ if (nrow(task) != 1L) stop("TASK_ID must identify one task.")
 
 raw <- do.call(rbind, lapply(seq_len(task$reps), function(i) {
   seed <- task$base_seed + i - 1L
-  out <- run_one_gs(seed, task$n, task$validated, task$m, task$k)
+  out <- run_one_gs(seed, task$n, task$validated, task$m, task$k, task$imputation)
   cbind(task[c("task_id", "run_id", "cell_id", "chunk_id")], out)
 }))
 
