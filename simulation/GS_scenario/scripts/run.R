@@ -5,7 +5,7 @@ if (length(args) != 3L) stop("Usage: Rscript run.R TASK_FILE TASK_ID RAW_DIR")
 
 script <- sub("^--file=", "", commandArgs()[grep("^--file=", commandArgs())])
 root <- normalizePath(file.path(dirname(script), "..", ".."))
-files <- c("pmmrw.R", "pmm_score.R", "variance.R", "results.R")
+files <- c("pmmrw.R", "pmm_score.R", "rw_fit.R", "variance.R", "results.R")
 invisible(lapply(file.path(root, "R", files), source))
 source(file.path(root, "GS_scenario", "scripts", "generate_gs_data.R"))
 source(file.path(root, "GS_scenario", "scripts", "run_one.R"))

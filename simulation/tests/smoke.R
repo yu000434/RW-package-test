@@ -3,6 +3,8 @@
 args <- commandArgs()
 script <- sub("^--file=", "", args[grep("^--file=", args)])
 sim <- normalizePath(file.path(dirname(script), ".."), mustWork = TRUE)
+stopifnot(!"rw" %in% loadedNamespaces())
+stopifnot(all(c("tasks", "models") %in% names(formals(mice::mice))))
 
 compare_row <- function(out, path, seed, scenario = NULL) {
   ref <- read.csv(path, stringsAsFactors = FALSE)
@@ -23,7 +25,7 @@ compare_row <- function(out, path, seed, scenario = NULL) {
   }
 }
 
-method_files <- c("pmmrw.R", "pmm_score.R", "variance.R", "results.R")
+method_files <- c("pmmrw.R", "pmm_score.R", "rw_fit.R", "variance.R", "results.R")
 invisible(lapply(file.path(sim, "R", method_files), source))
 source(file.path(sim, "GS_scenario", "scripts", "generate_gs_data.R"))
 source(file.path(sim, "GS_scenario", "scripts", "run_one.R"))
@@ -49,3 +51,5 @@ rw_expected <- c(estimate = 0.79821491158947, rb_se = 0.131276675826991,
 stopifnot(isTRUE(all.equal(unlist(rw_parametric[names(rw_expected)]), rw_expected,
                            tolerance = 1e-12, check.attributes = FALSE)))
 cat("RW_PMM_AND_PARAMETRIC_SMOKE=PASS\n")
+stopifnot(!"rw" %in% loadedNamespaces())
+cat("OLD_RW_PACKAGE_NOT_LOADED=PASS\n")

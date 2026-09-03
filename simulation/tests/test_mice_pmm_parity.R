@@ -29,7 +29,7 @@ recorded <- mice::mice(
 for (p in seq_len(ordinary$m)) {
   stopifnot(identical(mice::complete(ordinary, p)$Z, mice::complete(recorded, p)$Z))
 }
-donor_id <- rw::extract_donor_id(recorded, "Z")
+donor_id <- pmm_donors(recorded, "Z")
 missing <- which(is.na(data$Z))
 for (p in seq_len(recorded$m)) {
   completed <- mice::complete(recorded, p)

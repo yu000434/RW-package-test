@@ -25,13 +25,13 @@ run_one_gs <- function(seed, n, validated, m, k = NA_integer_, imputation = "pmm
     imps <- mice::mice(data, m = m, method = method, predictorMatrix = predictor_matrix,
                        tasks = "train", print = FALSE)
   }
-  fit <- rw::with_rw(imps, glm(D ~ A, family = binomial(), subset = A > threshold))
+  fit <- fit_rw(imps, glm(D ~ A, family = binomial(), subset = A > threshold))
   if (is_pmm) {
     pmm_score <- pmm_kappa_gs(
       imps, fit, data, "A", predictors, k, threshold = threshold,
       quadrature_order = quadrature_order
     )
-    donor_id <- rw::extract_donor_id(imps, "A")
+    donor_id <- pmm_donors(imps, "A")
     variance <- compute_rw_variance(fit, pmm_score$kappa, pmm_cols(imps, "A"), donor_id)
     kappa <- pmm_score$kappa
     diagnostics <- pmm_score$diagnostics

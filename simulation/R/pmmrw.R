@@ -62,3 +62,9 @@ mice.impute.pmmrw <- function(y, ry, x, wy = NULL, task = "impute", model = NULL
 
   y[ry][donor_pos]
 }
+
+pmm_donors <- function(imps, variable) {
+  do.call(cbind, lapply(seq_len(imps$m), function(p) {
+    imps$models[[variable]][[p]]$donor_id
+  }))
+}

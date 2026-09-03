@@ -8,7 +8,7 @@ smoothed matching probabilities are used only for its variance score.
 ## Structure
 
 ```
-R/                       common variance and PMM code
+R/                       self-contained RW and PMM method code
 GS_scenario/scripts/     GS generator and simulation scripts
 RW_scenario/scripts/     RW generator and simulation scripts
 GS_scenario/tasks_*.csv  fixed GS task tables
@@ -32,6 +32,7 @@ variance and standard error.
 |---|---|
 | `pmmrw.R` | Runs ordinary MICE PMM and records the realized donor IDs and fitted PMM quantities. |
 | `pmm_score.R` | Calculates PMM matching probabilities, their derivatives, and the PMM cross term for the RW and GS analyses. |
+| `rw_fit.R` | Constructs the analysis and imputation scores for `norm`, `logreg`, and recorded PMM imputations. |
 | `variance.R` | Assembles the ordinary RW variance or its PMM donor-source version. |
 | `results.R` | Extracts variance components, Rubin-rule results, and donor-reuse summaries. |
 
@@ -74,3 +75,21 @@ The parity test verifies that `pmmrw` preserves ordinary MICE completed
 values and records the correct donor IDs. The smoke test checks PMM against
 the frozen current results and parametric MICE against the certified 2026-07-18
 results.
+
+The method code depends on `mice` for imputation but does not require the old
+`rw` package.
+
+## Requirements
+
+The simulations use `mvtnorm` and the official `amices/mice` development
+version that records fitted imputation models:
+
+```
+repository: https://github.com/amices/mice
+commit: c9b67ae1cd54784267a01f1b70d93a40d509a5de
+version: 3.17.3.9000
+```
+
+The fixed commit is required because the simulations use `tasks = "train"` to
+retain the fitted `norm`, `logreg`, and PMM quantities. No code or result is
+read from `MI_4_14` or the old `rw` package.

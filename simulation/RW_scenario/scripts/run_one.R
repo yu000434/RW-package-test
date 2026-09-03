@@ -22,13 +22,13 @@ run_one_rw <- function(seed, scenario, n, m, k = NA_integer_, imputation = "pmm"
     imps <- mice::mice(data, m = m, method = method, predictorMatrix = predictor_matrix,
                        tasks = "train", print = FALSE)
   }
-  fit <- rw::with_rw(
+  fit <- fit_rw(
     imps,
     lm(Z ~ X - 1, subset = if (scenario == "robins_1") A == 1 else rep(TRUE, length(A)))
   )
   if (is_pmm) {
     pmm_score <- pmm_kappa_rw(imps, fit, data, "Z", predictors, k, scenario)
-    donor_id <- rw::extract_donor_id(imps, "Z")
+    donor_id <- pmm_donors(imps, "Z")
     variance <- compute_rw_variance(fit, pmm_score$kappa, pmm_cols(imps, "Z"), donor_id)
     kappa <- pmm_score$kappa
     diagnostics <- pmm_score$diagnostics
