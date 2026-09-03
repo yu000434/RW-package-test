@@ -1,0 +1,7 @@
+.DS_Store
+.RData
+.Rhistory
+simulation/results/
+simulation/reports/*.aux
+simulation/reports/*.log
+simulation/reports/*.out
