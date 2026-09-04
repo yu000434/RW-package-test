@@ -1,0 +1,22 @@
+Package: rw
+Title: Robins-Wang Variance Estimation for Multiply Imputed Data
+Version: 0.0.0.9002
+Authors@R: c(
+    person("Lucy", "D'Agostino McGowan", email = "lucydagostino@gmail.com", role = c("aut", "cre")),
+    person("Suyang", "Yu", role = "aut"),
+    person("Mark", "Giganti", role = "ctb"),
+    person("Brian", "Williamson", role = "ctb")
+  )
+Description: Computes Robins-Wang variance estimates for analyses of multiply
+    imputed data. The initial package implementation supports normal and
+    logistic chained-equation imputation with linear and binomial generalized
+    linear analysis models.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends: R (>= 3.5)
+Imports: mice (>= 3.17.3.9000)
+Suggests: testthat (>= 3.0.0)
+Remotes: amices/mice@c9b67ae1cd54784267a01f1b70d93a40d509a5de
+Config/testthat/edition: 3
