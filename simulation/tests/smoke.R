@@ -25,8 +25,7 @@ compare_row <- function(out, path, seed, scenario = NULL) {
   }
 }
 
-method_files <- c("pmmrw.R", "parametric.R", "pmm.R", "analysis.R", "fit.R",
-                  "variance.R", "results.R")
+method_files <- c("pmmrw.R", "parametric.R", "pmm.R", "analysis.R", "rw.R", "results.R")
 invisible(lapply(file.path(sim, "R", method_files), source))
 source(file.path(sim, "GS_scenario", "scripts", "generate_gs_data.R"))
 source(file.path(sim, "GS_scenario", "scripts", "run_one.R"))
