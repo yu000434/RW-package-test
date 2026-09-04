@@ -23,7 +23,7 @@ imputation models through `tasks = "train"`.
 
 ```r
 remotes::install_github("amices/mice@c9b67ae1cd54784267a01f1b70d93a40d509a5de")
-remotes::install_github("yu000434/RW-package-test")
+remotes::install_git("git@github.com:yu000434/RW-package-test.git")
 ```
 
 ## Parametric imputation
