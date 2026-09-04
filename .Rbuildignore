@@ -3,6 +3,7 @@
 ^\.git$
 ^\.gitignore$
 ^\.github$
+^LICENSE\.md$
 ^README\.Rmd$
 ^_pkgdown\.yml$
 ^docs$
