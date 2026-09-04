@@ -3,6 +3,11 @@
 
 # `rw`: Robins-Wang variance estimation for multiple imputation
 
+<!-- badges: start -->
+
+[![R-CMD-check](https://github.com/yu000434/RW-package-test/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/yu000434/RW-package-test/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
 The `rw` package computes [Robins-Wang variance
 estimates](https://doi.org/10.1093/biomet/87.1.113) for analyses of
 multiply imputed data. It supports parametric chained-equation

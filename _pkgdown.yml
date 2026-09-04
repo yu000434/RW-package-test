@@ -1,0 +1,19 @@
+url: https://yu000434.github.io/RW-package-test/
+template:
+  bootstrap: 5
+  math-rendering: mathjax
+
+reference:
+- title: Analysis and pooling
+  contents:
+  - with_rw
+  - pool_rw
+- title: Predictive mean matching
+  contents:
+  - mice.impute.pmmrw
+  - extract_donor_id
+  - pmm_kappa
+  - pmm_kappa_binomial
+- title: Data
+  contents:
+  - giganti_data

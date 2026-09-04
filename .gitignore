@@ -1,6 +1,8 @@
 .DS_Store
 .RData
 .Rhistory
+README.html
+docs/
 simulation/results/
 simulation/reports/*.aux
 simulation/reports/*.log
