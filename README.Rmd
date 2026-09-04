@@ -89,10 +89,61 @@ The donor IDs used in each imputation are available when needed.
 head(extract_donor_id(imp_pmm, "bmi"))
 ```
 
+## Giganti and Shepherd example
+
+The package includes the simulated `giganti_data`. The first 500 observations
+are used here to keep the example short. Both `A` and `D` are incomplete.
+
+```{r gs-setup}
+data("giganti_data", package = "rw")
+gs <- giganti_data[seq_len(500), ]
+predictors <- c("X1", "X2", "A.star", "D.star")
+
+pred <- make.predictorMatrix(gs)
+pred[,] <- 0L
+pred["A", predictors] <- 1L
+pred["D", c(predictors, "A")] <- 1L
+```
+
+With parametric imputation, `A` uses a normal model and `D` uses logistic
+regression.
+
+```{r gs-parametric, message=FALSE}
+method <- make.method(gs)
+method[] <- ""
+method[c("A", "D")] <- c("norm", "logreg")
+
+set.seed(41)
+imp_gs_norm <- mice(gs, m = 2, method = method, predictorMatrix = pred,
+                    tasks = "train", print = FALSE)
+fit_gs_norm <- with_rw(
+  imp_gs_norm,
+  glm(D ~ A, subset = A > 2, family = binomial())
+)
+pool_rw(fit_gs_norm)
+```
+
+For predictive mean matching, `pmm_kappa_binomial()` computes the PMM cross
+term for the binomial analysis before the final variance is assembled.
+
+```{r gs-pmm, message=FALSE}
+method[c("A", "D")] <- c("pmmrw", "logreg")
+
+set.seed(42)
+imp_gs_pmm <- mice(gs, m = 2, method = method, predictorMatrix = pred,
+                   tasks = "train", print = FALSE)
+fit_gs_pmm <- with_rw(
+  imp_gs_pmm,
+  glm(D ~ A, subset = A > 2, family = binomial())
+)
+kappa <- pmm_kappa_binomial(fit_gs_pmm, "A", threshold = 2)
+pool_rw(fit_gs_pmm, pmm_kappa = kappa)
+```
+
 ## Current scope
 
 The package supports `norm` and `logreg` imputation with `lm()` or binomial
-`glm()` analysis. Automatic PMM pooling currently supports one numeric
-`pmmrw` variable used as the response of `lm()`. More complex PMM analyses can
-provide their cross-term matrix through the `pmm_kappa` argument to
-`pool_rw()`.
+`glm()` analysis. PMM pooling supports one numeric `pmmrw` variable as the
+response of `lm()` or as the predictor in the documented binomial analysis.
+Other PMM analyses can define their expected analysis score through
+`pmm_kappa()`.

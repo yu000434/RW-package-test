@@ -32,3 +32,31 @@ test_that("pmmrw preserves MICE values and records donors", {
   expect_true(all(is.finite(vcov(pooled))))
   expect_true(all(diag(vcov(pooled)) > 0))
 })
+
+test_that("PMM works with downstream logreg and binomial analysis", {
+  set.seed(23)
+  data <- data.frame(x1 = rnorm(240), x2 = rnorm(240))
+  data$a <- 0.5 + data$x1 - 0.5 * data$x2 + rnorm(240)
+  data$d <- factor(rbinom(240, 1, plogis(-1 + data$a + 0.5 * data$x1)))
+  missing <- sample(240, 120)
+  data$a[missing] <- NA
+  data$d[missing] <- NA
+  method <- mice::make.method(data)
+  method[] <- ""
+  method[c("a", "d")] <- c("pmmrw", "logreg")
+  pred <- mice::make.predictorMatrix(data)
+  pred[,] <- 0L
+  pred["a", c("x1", "x2")] <- 1L
+  pred["d", c("x1", "x2", "a")] <- 1L
+
+  set.seed(24)
+  imp <- mice::mice(data, m = 2, method = method, predictorMatrix = pred,
+                    tasks = "train", print = FALSE)
+  fit <- with_rw(imp, glm(d ~ a, subset = a > 0, family = binomial()))
+  kappa <- pmm_kappa_binomial(fit, "a", threshold = 0, quadrature_order = 12)
+  pooled <- pool_rw(fit, pmm_kappa = kappa)
+
+  expect_equal(dim(kappa), c(2, 3))
+  expect_true(all(is.finite(vcov(pooled))))
+  expect_true(all(diag(vcov(pooled)) > 0))
+})

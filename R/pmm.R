@@ -91,11 +91,11 @@ pmm_inputs <- function(imps, variable, p) {
     stop("PMM variance estimation requires matchtype = 1.")
   }
   observed <- !is.na(data[[variable]])
-  names <- model$xnames
-  predictors <- setdiff(names, "(Intercept)")
+  model_names <- model$xnames
+  predictors <- setdiff(model_names, "(Intercept)")
   x <- as.matrix(data[predictors])
-  if ("(Intercept)" %in% names) x <- cbind(`(Intercept)` = 1, x)
-  x <- x[, names, drop = FALSE]
+  if ("(Intercept)" %in% model_names) x <- cbind(`(Intercept)` = 1, x)
+  x <- x[, model_names, drop = FALSE]
   x_obs <- x[observed, , drop = FALSE]
   x_mis <- x[!observed, , drop = FALSE]
   fit <- utils::getFromNamespace("estimice", "mice")(
@@ -123,8 +123,18 @@ pmm_columns <- function(imps, variable) {
   seq.int(start[index], length.out = dimensions[index])
 }
 
-pmm_lm_kappa <- function(object, variable) {
-  n <- object$n
+#' Compute the PMM cross term
+#'
+#' @param object An `rw_fit` object returned by [with_rw()].
+#' @param variable Name of the PMM-imputed variable.
+#' @param expected_score A function called with `object`, `variable`, the
+#'   imputation number, the missing-row indicator, and the donor predictions.
+#'   It must return one donor-by-recipient matrix per analysis coefficient.
+#' @param ... Additional arguments passed to `expected_score`.
+#'
+#' @return The PMM columns of the RW cross-term matrix.
+#' @export
+pmm_kappa <- function(object, variable, expected_score, ...) {
   imps <- object$mids
   analysis_names <- names(stats::coef(object$results[[1L]]$model))
   pmm_names <- imps$models[[variable]][[1L]]$xnames
@@ -132,24 +142,132 @@ pmm_lm_kappa <- function(object, variable) {
                   dimnames = list(analysis_names, pmm_names))
 
   for (p in seq_len(object$m)) {
-    model <- object$results[[p]]$model
-    if (!inherits(model, "lm") || inherits(model, "glm") ||
-        all.vars(stats::formula(model))[[1L]] != variable) {
-      stop("Automatic PMM pooling requires the PMM variable to be the response of lm().")
-    }
     inputs <- pmm_inputs(imps, variable, p)
-    x <- matrix(0, n, length(analysis_names), dimnames = list(NULL, analysis_names))
-    rows <- as.integer(rownames(stats::model.frame(model)))
-    x[rows, ] <- stats::model.matrix(model)
-    x_mis <- x[inputs$missing, , drop = FALSE]
-    fitted_mean <- drop(x_mis %*% stats::coef(model))
-    residual <- outer(inputs$membership$donor_prediction, fitted_mean, "-")
+    score <- expected_score(
+      object, variable, p, inputs$missing,
+      inputs$membership$donor_prediction, ...
+    )
+    expected_dim <- dim(inputs$membership$probability)
+    if (length(score) != length(analysis_names) ||
+        any(vapply(score, function(x) !identical(dim(x), expected_dim), logical(1)))) {
+      stop("`expected_score` returned incompatible score matrices.")
+    }
+    donors <- imps$models[[variable]][[p]]$setup$donors
     for (j in seq_along(pmm_names)) {
-      weighted <- inputs$membership$derivative[[j]] * residual /
-        imps$models[[variable]][[p]]$setup$donors
+      derivative <- inputs$membership$derivative[[j]] / donors
       kappa[, j] <- kappa[, j] +
-        drop(crossprod(x_mis, colSums(weighted))) / summary(model)$sigma^2
+        vapply(score, function(x) sum(derivative * x), numeric(1))
     }
   }
-  kappa / (n * object$m)
+  kappa / (object$n * object$m)
+}
+
+pmm_score_lm <- function(object, variable, p, missing, donor_mean) {
+  model <- object$results[[p]]$model
+  if (!inherits(model, "lm") || inherits(model, "glm") ||
+      all.vars(stats::formula(model))[[1L]] != variable) {
+    stop("Automatic PMM pooling requires the PMM variable to be the response of lm().")
+  }
+  coef_names <- names(stats::coef(model))
+  x <- matrix(0, object$n, length(coef_names), dimnames = list(NULL, coef_names))
+  rows <- as.integer(rownames(stats::model.frame(model)))
+  x[rows, ] <- stats::model.matrix(model)
+  x <- x[missing, , drop = FALSE]
+  residual <- outer(donor_mean, drop(x %*% stats::coef(model)), "-")
+  lapply(seq_along(coef_names), function(j) {
+    sweep(residual, 2L, x[, j] / summary(model)$sigma^2, "*")
+  })
+}
+
+pmm_lm_kappa <- function(object, variable) {
+  pmm_kappa(object, variable, pmm_score_lm)
+}
+
+gauss_legendre <- function(order) {
+  index <- seq_len(order - 1L)
+  off_diagonal <- index / sqrt(4 * index^2 - 1)
+  jacobi <- matrix(0, order, order)
+  jacobi[cbind(index, index + 1L)] <- off_diagonal
+  jacobi[cbind(index + 1L, index)] <- off_diagonal
+  eig <- eigen(jacobi, symmetric = TRUE)
+  ordering <- order(eig$values)
+  list(node = eig$values[ordering], weight = 2 * eig$vectors[1L, ordering]^2)
+}
+
+pmm_score_binomial <- function(object, variable, p, missing, donor_mean,
+                               threshold, quadrature_order) {
+  model <- object$results[[p]]$model
+  response <- all.vars(stats::formula(model))[[1L]]
+  analysis_names <- names(stats::coef(model))
+  if (!inherits(model, "glm") || stats::family(model)$family != "binomial" ||
+      !identical(analysis_names, c("(Intercept)", variable))) {
+    stop("Binomial PMM pooling requires glm(response ~ PMM_variable, family = binomial()).")
+  }
+  completed <- mice::complete(object$mids, p)
+  included <- as.integer(rownames(stats::model.frame(model)))
+  if (!identical(included, which(completed[[variable]] > threshold))) {
+    stop("The analysis subset must be the PMM variable greater than `threshold`.")
+  }
+
+  downstream <- object$mids$models[[response]][[p]]
+  if (is.null(downstream) || object$mids$method[[response]] != "logreg") {
+    stop("The binomial response must use logreg imputation.")
+  }
+  beta <- drop(downstream$beta.dot)
+  model_names <- downstream$xnames
+  model_names[model_names == ""] <- "(Intercept)"
+  names(beta) <- model_names
+  base_names <- setdiff(model_names, variable)
+  predictors <- setdiff(base_names, "(Intercept)")
+  x <- as.matrix(object$mids$data[missing, predictors, drop = FALSE])
+  if ("(Intercept)" %in% base_names) x <- cbind(`(Intercept)` = 1, x)
+  downstream_base <- drop(x[, base_names, drop = FALSE] %*% beta[base_names])
+  observed_response <- object$mids$data[[response]][missing]
+  if (is.factor(observed_response)) {
+    observed_response <- as.numeric(as.character(observed_response))
+  }
+
+  donor_sd <- object$mids$models[[variable]][[p]]$sigma.dot
+  rule <- gauss_legendre(quadrature_order)
+  lower <- pmax((threshold - donor_mean) / donor_sd, -10)
+  upper <- rep(10, length(donor_mean))
+  half_width <- ifelse(lower < upper, (upper - lower) / 2, 0)
+  midpoint <- (upper + lower) / 2
+  z <- outer(half_width, rule$node, "*") + midpoint
+  weight <- outer(half_width, rule$weight, "*") * stats::dnorm(z)
+  donor_value <- sweep(z * donor_sd, 1L, donor_mean, "+")
+  score <- list(matrix(0, length(donor_mean), sum(missing)),
+                matrix(0, length(donor_mean), sum(missing)))
+  observed <- !is.na(observed_response)
+
+  for (q in seq_len(quadrature_order)) {
+    value <- donor_value[, q]
+    analysis_mean <- stats::plogis(stats::coef(model)[[1L]] +
+                                     stats::coef(model)[[variable]] * value)
+    downstream_mean <- stats::plogis(outer(value * beta[[variable]], downstream_base, "+"))
+    residual <- sweep(downstream_mean, 1L, analysis_mean, "-")
+    if (any(observed)) {
+      residual[, observed] <- outer(analysis_mean, observed_response[observed],
+                                    function(mean, outcome) outcome - mean)
+    }
+    weighted <- residual * weight[, q]
+    score[[1L]] <- score[[1L]] + weighted
+    score[[2L]] <- score[[2L]] + sweep(weighted, 1L, value, "*")
+  }
+  score
+}
+
+#' Compute the PMM cross term for a binomial analysis
+#'
+#' @param object An `rw_fit` object returned by [with_rw()].
+#' @param variable Name of the continuous PMM predictor.
+#' @param threshold Lower analysis threshold for the PMM predictor.
+#' @param quadrature_order Number of quadrature points.
+#'
+#' @return The PMM columns of the RW cross-term matrix.
+#' @export
+pmm_kappa_binomial <- function(object, variable, threshold = -Inf,
+                               quadrature_order = 24L) {
+  pmm_kappa(object, variable, pmm_score_binomial,
+            threshold = threshold, quadrature_order = quadrature_order)
 }

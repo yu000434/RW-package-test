@@ -103,10 +103,71 @@ head(extract_donor_id(imp_pmm, "bmi"))
 #> [6,]   24   20    8   24    5
 ```
 
+## Giganti and Shepherd example
+
+The package includes the simulated `giganti_data`. The first 500
+observations are used here to keep the example short. Both `A` and `D`
+are incomplete.
+
+``` r
+data("giganti_data", package = "rw")
+gs <- giganti_data[seq_len(500), ]
+predictors <- c("X1", "X2", "A.star", "D.star")
+
+pred <- make.predictorMatrix(gs)
+pred[,] <- 0L
+pred["A", predictors] <- 1L
+pred["D", c(predictors, "A")] <- 1L
+```
+
+With parametric imputation, `A` uses a normal model and `D` uses
+logistic regression.
+
+``` r
+method <- make.method(gs)
+method[] <- ""
+method[c("A", "D")] <- c("norm", "logreg")
+
+set.seed(41)
+imp_gs_norm <- mice(gs, m = 2, method = method, predictorMatrix = pred,
+                    tasks = "train", print = FALSE)
+fit_gs_norm <- with_rw(
+  imp_gs_norm,
+  glm(D ~ A, subset = A > 2, family = binomial())
+)
+pool_rw(fit_gs_norm)
+#> Robins-Wang pooled results
+#>         term   estimate std.error statistic      p.value   conf.low conf.high
+#>  (Intercept) -3.0864612 0.6738210 -4.580536 4.637867e-06 -4.4071261 -1.765796
+#>            A  0.9385706 0.2255057  4.162070 3.153760e-05  0.4965875  1.380554
+```
+
+For predictive mean matching, `pmm_kappa_binomial()` computes the PMM
+cross term for the binomial analysis before the final variance is
+assembled.
+
+``` r
+method[c("A", "D")] <- c("pmmrw", "logreg")
+
+set.seed(42)
+imp_gs_pmm <- mice(gs, m = 2, method = method, predictorMatrix = pred,
+                   tasks = "train", print = FALSE)
+fit_gs_pmm <- with_rw(
+  imp_gs_pmm,
+  glm(D ~ A, subset = A > 2, family = binomial())
+)
+kappa <- pmm_kappa_binomial(fit_gs_pmm, "A", threshold = 2)
+pool_rw(fit_gs_pmm, pmm_kappa = kappa)
+#> Robins-Wang pooled results
+#>         term   estimate std.error statistic    p.value   conf.low  conf.high
+#>  (Intercept) -2.4084915 1.1015650 -2.186427 0.02878438 -4.5675192 -0.2494637
+#>            A  0.6485696 0.3549776  1.827072 0.06768899 -0.0471738  1.3443130
+```
+
 ## Current scope
 
 The package supports `norm` and `logreg` imputation with `lm()` or
-binomial `glm()` analysis. Automatic PMM pooling currently supports one
-numeric `pmmrw` variable used as the response of `lm()`. More complex
-PMM analyses can provide their cross-term matrix through the `pmm_kappa`
-argument to `pool_rw()`.
+binomial `glm()` analysis. PMM pooling supports one numeric `pmmrw`
+variable as the response of `lm()` or as the predictor in the documented
+binomial analysis. Other PMM analyses can define their expected analysis
+score through `pmm_kappa()`.
