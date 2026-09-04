@@ -8,9 +8,9 @@ Authors@R: c(
     person("Brian", "Williamson", role = "ctb")
   )
 Description: Computes Robins-Wang variance estimates for analyses of multiply
-    imputed data. The initial package implementation supports normal and
-    logistic chained-equation imputation with linear and binomial generalized
-    linear analysis models.
+    imputed data after normal, logistic, or predictive mean matching
+    chained-equation imputation. Analysis models may be linear or binomial
+    generalized linear models.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

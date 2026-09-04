@@ -1,6 +1,7 @@
 #' Fit an analysis model to multiply imputed data
 #'
-#' @param data A `mids` object created with `mice(..., tasks = "train")`.
+#' @param data A `mids` object created with `mice(..., tasks = "train")` using
+#'   `norm`, `logreg`, or `pmmrw` imputation.
 #' @param expr An `lm` or binomial `glm` expression.
 #'
 #' @return An `rw_fit` object containing the fitted models and RW components.
@@ -12,8 +13,11 @@ with_rw <- function(data, expr) {
   variables <- names(data$models)
   variables <- variables[vapply(variables, function(x) anyNA(data$data[[x]]), logical(1))]
   methods <- unname(data$method[variables])
-  if (any(!methods %in% c("norm", "logreg"))) {
-    stop("The initial package implementation supports only norm and logreg imputation.")
+  if (any(!methods %in% c("norm", "logreg", "pmmrw"))) {
+    stop("Supported imputation methods are norm, logreg, and pmmrw.")
+  }
+  if (sum(methods == "pmmrw") > 1L) {
+    stop("The current PMM implementation supports one pmmrw variable.")
   }
 
   expression <- substitute(expr)
@@ -32,7 +36,12 @@ with_rw <- function(data, expr) {
     }
 
     imputation <- lapply(variables, function(variable) {
-      parametric_component(completed, data$models[[variable]][[p]], variable)
+      model <- data$models[[variable]][[p]]
+      if (data$method[[variable]] == "pmmrw") {
+        pmm_component(model)
+      } else {
+        parametric_component(completed, model, variable)
+      }
     })
     model <- eval(expression, completed, environment)
     analysis <- analysis_component(model, nrow(completed))

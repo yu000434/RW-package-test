@@ -4,10 +4,13 @@
 \alias{pool_rw}
 \title{Pool an RW analysis}
 \usage{
-pool_rw(object)
+pool_rw(object, pmm_kappa = NULL)
 }
 \arguments{
 \item{object}{An \code{rw_fit} object returned by \code{\link[=with_rw]{with_rw()}}.}
+
+\item{pmm_kappa}{Optional PMM cross-term matrix for analyses outside the
+automatic linear-model path.}
 }
 \value{
 An \code{rw_pool} object containing pooled estimates and RW variance.

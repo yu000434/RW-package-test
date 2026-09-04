@@ -7,7 +7,8 @@
 with_rw(data, expr)
 }
 \arguments{
-\item{data}{A \code{mids} object created with \code{mice(..., tasks = "train")}.}
+\item{data}{A \code{mids} object created with \code{mice(..., tasks = "train")} using
+\code{norm}, \code{logreg}, or \code{pmmrw} imputation.}
 
 \item{expr}{An \code{lm} or binomial \code{glm} expression.}
 }
