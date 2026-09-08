@@ -25,26 +25,22 @@ run_one_gs <- function(seed, n, validated, m, k = NA_integer_, imputation = "pmm
     imps <- mice::mice(data, m = m, method = method, predictorMatrix = predictor_matrix,
                        tasks = "train", print = FALSE)
   }
-  fit <- fit_rw(imps, glm(D ~ A, family = binomial(), subset = A > threshold))
+  fit <- with_rw(imps, glm(D ~ A, family = binomial(), subset = A > threshold))
+  kappa <- columns <- donor_id <- NULL
   if (is_pmm) {
-    pmm_score <- pmm_kappa_gs(
-      imps, fit, data, "A", predictors, k, threshold = threshold,
-      quadrature_order = quadrature_order
-    )
-    donor_id <- pmm_donors(imps, "A")
-    variance <- compute_rw_variance(fit, pmm_score$kappa, pmm_cols(imps, "A"), donor_id)
-    kappa <- pmm_score$kappa
-    diagnostics <- pmm_score$diagnostics
+    kappa <- pmm_kappa_binomial(fit, "A", threshold, quadrature_order)
+    columns <- pmm_columns(imps, "A")
+    donor_id <- extract_donor_id(imps, "A")
+    # The package quadrature truncates the standard normal at +/-10.
+    diagnostics <- c(pmm_checks(imps, "A"), max_quadrature_tail_bound = 2 * pnorm(-10))
     reuse <- donor_use(donor_id)
   } else {
-    variance <- compute_rw_variance(fit)
-    kappa <- variance$kappa
-    diagnostics <- c(max_membership_probability_error = NA_real_,
-                     max_membership_derivative_error = NA_real_,
-                     max_intercept_derivative = NA_real_, max_quadrature_tail_bound = NA_real_)
+    diagnostics <- c(max_probability_error = NA_real_, max_derivative_error = NA_real_,
+                     max_intercept_error = NA_real_, max_quadrature_tail_bound = NA_real_)
     reuse <- c(n_imputed = NA_real_, n_unique_donors = NA_real_, max_donor_reuse = NA_real_)
   }
-  rb <- var_parts(fit, variance, "A")
+  pooled <- pool_rw(fit, pmm_kappa = kappa)
+  rb <- var_parts(fit, pooled, "A", kappa, columns, donor_id)
   rr <- rubin_parts(fit, "A")
   s_mis <- mean(vapply(fit$results, function(result) sqrt(sum(result$S_mis_imp^2)), numeric(1)))
 
@@ -55,16 +51,15 @@ run_one_gs <- function(seed, n, validated, m, k = NA_integer_, imputation = "pmm
     estimate = rr[["estimate"]], rb_se = sqrt(rb[["total"]]),
     rb_total_var = rb[["total"]], omega_var = rb[["omega"]],
     kappa_var = rb[["kappa"]], cross_var = rb[["cross"]],
-    u_bar_norm = sqrt(sum(variance$u_bar^2)),
-    u_bar_omega_norm = sqrt(sum(variance$u_bar_omega^2)),
-    s_mis_imp_norm = s_mis, kappa_norm = sqrt(sum(kappa^2)),
+    u_bar_norm = rb[["u_bar_norm"]], u_bar_omega_norm = rb[["u_bar_omega_norm"]],
+    s_mis_imp_norm = s_mis, kappa_norm = rb[["kappa_norm"]],
     rr_se = sqrt(rr[["total"]]),
     rr_total_var = rr[["total"]], rr_u_bar = rr[["u_bar"]], rr_b = rr[["b"]],
     n_imputed = reuse[["n_imputed"]], n_unique_donors = reuse[["n_unique_donors"]],
     max_donor_reuse = reuse[["max_donor_reuse"]],
-    max_probability_error = diagnostics[["max_membership_probability_error"]],
-    max_derivative_error = diagnostics[["max_membership_derivative_error"]],
-    max_intercept_error = diagnostics[["max_intercept_derivative"]],
+    max_probability_error = diagnostics[["max_probability_error"]],
+    max_derivative_error = diagnostics[["max_derivative_error"]],
+    max_intercept_error = diagnostics[["max_intercept_error"]],
     max_quadrature_tail_bound = diagnostics[["max_quadrature_tail_bound"]],
     mean_analysis_n = mean(vapply(fit$results, `[[`, integer(1), "n_analysis")),
     median_abs_score_component_corr = score_correlation(fit)

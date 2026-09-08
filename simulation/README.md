@@ -5,50 +5,43 @@ imputation uses the MICE `norm` and `logreg` methods with the ordinary RW
 variance. PMM uses standard MICE completed values and realized donor IDs;
 smoothed matching probabilities are used only for its variance score.
 
+Both simulations load the package source directly from `../R/`. There is no
+separate copy of the method code and no installed `rw` package is required.
+
 ## Structure
 
 ```
-R/                       self-contained RW and PMM method code
+../R/                    shared package core
+results.R                result extraction and diagnostics
 GS_scenario/scripts/     GS generator and simulation scripts
 RW_scenario/scripts/     RW generator and simulation scripts
 GS_scenario/tasks_*.csv  fixed GS task tables
 RW_scenario/tasks_*.csv  fixed RW task tables
 results/<run-id>/        raw results and summaries
-reports/                  paper-style report
-tests/                    parity and smoke tests
 ```
 
 GS and RW have separate data generators and one-replicate runners because
 their data-generating and analysis models differ. Both use the same files in
-`R/` and write the same result columns.
+`../R/` and write the same result columns. Copy the whole `RW` project to run
+on another machine, not just this `simulation/` directory.
 
 The existing `rb_*` raw-result names are retained so the frozen PMM files
 remain compatible. In parametric rows, these columns contain the ordinary RW
 variance and standard error.
 
-## Method files
+## Calculation
 
-| File | Purpose |
-|---|---|
-| `analysis.R` | Constructs the analysis components `U` and `tau` for `lm` and `glm`. |
-| `parametric.R` | Constructs `S_mis` and `d` for the MICE `norm` and `logreg` models. |
-| `pmm.R` | Constructs the PMM imputation components, matching derivatives, PMM `kappa`, and donor information. |
-| `pmmrw.R` | Runs ordinary MICE PMM and records the realized donor IDs and fitted PMM quantities. |
-| `rw.R` | Evaluates all components and assembles the ordinary RW variance or its PMM donor-source version. |
-| `results.R` | Extracts variance components, Rubin-rule results, and donor-reuse summaries. |
+`with_rw()` fits each completed dataset. PMM cross terms use `pmm_kappa()`
+for RW or `pmm_kappa_binomial()` for GS. `pool_rw()` computes the final
+variance in both the parametric and PMM paths.
 
-The component flow is:
-
-```text
-analysis.R                 -> U, tau
-parametric.R or pmm.R      -> S_mis, d
-pmm.R                      -> PMM kappa and donor information when needed
-rw.R                       -> all completed-data components and the final RW variance
-```
-
-The two imputation files share the same `S_mis` and `d` interface. A simulation
-may use both: in the GS PMM setting, `A` uses `pmm.R`, while the logistic
-imputation of `D` uses `parametric.R`.
+`results.R` saves Rubin-rule results, variance components, score norms,
+donor reuse and matching errors. It reconstructs variance components only
+for reporting and checks that their sum equals the package variance.
+Matching diagnostics call the package's probability code; they do not define
+a second PMM method. This adds one probability calculation per imputation to
+retain the diagnostic fields without changing the package interface. The
+original task tables, seeds and result columns are unchanged.
 
 ## Simulation scripts
 
@@ -77,21 +70,6 @@ Rscript GS_scenario/scripts/summarize.R TASK_FILE RAW_DIR SUMMARY_FILE CELL_ID
 Rscript RW_scenario/scripts/run.R TASK_FILE TASK_ID RAW_DIR
 Rscript RW_scenario/scripts/summarize.R TASK_FILE RAW_DIR SUMMARY_FILE
 ```
-
-## Checks
-
-```sh
-Rscript tests/test_mice_pmm_parity.R
-Rscript tests/smoke.R
-```
-
-The parity test verifies that `pmmrw` preserves ordinary MICE completed
-values and records the correct donor IDs. The smoke test checks PMM against
-the frozen current results and parametric MICE against the certified 2026-07-18
-results.
-
-The method code depends on `mice` for imputation but does not require the old
-`rw` package.
 
 ## Requirements
 

@@ -16,7 +16,7 @@ URL: https://yu000434.github.io/RW-package-test/,
     https://github.com/yu000434/RW-package-test
 BugReports: https://github.com/yu000434/RW-package-test/issues
 Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
+Roxygen: list(markdown = TRUE, roclets = "namespace")
 RoxygenNote: 7.3.2
 Depends: R (>= 3.5)
 LazyData: true

@@ -1,35 +1,29 @@
 #' Predictive mean matching with donor recording
 #'
-#' `pmmrw` uses the standard MICE donor draw and records the selected donor and
-#' fitted matching model for Robins-Wang variance estimation.
+#' Performs standard MICE predictive mean matching while recording donor
+#' and model information needed for Robins-Wang variance estimation.
 #'
 #' @param y,ry,x,wy Arguments supplied by `mice`.
-#' @param task,model Model-recording arguments supplied by `mice` when
-#'   `tasks = "train"`.
-#' @param exclude,ridge,matchtype,donors,use.matcher,mlocal PMM arguments.
-#' @param ... Additional arguments passed to the normal draw.
+#' @param task,model Model-recording arguments supplied by `mice`.
+#' @param ... Additional arguments.
 #'
-#' @return Imputed values copied from the selected observed donors.
+#' @return Imputed values from the selected donors.
 #' @export
-mice.impute.pmmrw <- function(y, ry, x, wy = NULL, task = "impute", model = NULL,
+#' 
+mice.impute.pmmrw <- function(y, ry, x, wy = !ry, task = "impute", model = NULL,
                               exclude = NULL, ridge = 1e-05, matchtype = 1L,
                               donors = 5L, use.matcher = FALSE, mlocal = 1L, ...) {
-  if (!is.null(exclude)) stop("`pmmrw` does not support `exclude`.")
-  if (is.factor(y)) stop("`pmmrw` supports numeric variables only.")
-  if (isTRUE(use.matcher)) stop("`pmmrw` requires `use.matcher = FALSE`.")
-  if (!identical(as.integer(mlocal), 1L)) stop("`pmmrw` requires `mlocal = 1`.")
-  if (is.null(wy)) wy <- !ry
-  if (task != "train" || is.null(model) || !is.environment(model)) {
-    stop("`pmmrw` requires `tasks = \"train\"`.")
+  if (!is.null(exclude) || isTRUE(use.matcher) || mlocal != 1L || matchtype != 1L) {
+    stop("`pmmrw` requires exclude = NULL, use.matcher = FALSE, mlocal = 1, and matchtype = 1.")
   }
+  if (is.factor(y)) stop("`pmmrw` supports numeric variables only.")
+  if (task != "train") stop("`pmmrw` requires `tasks = \"train\"`.")
 
   n <- length(y)
   x <- cbind(`(Intercept)` = 1, as.matrix(x))
   draw <- utils::getFromNamespace(".norm.draw", "mice")(y, ry, x, ridge = ridge, ...)
   beta_hat <- drop(draw$coef)
   beta_dot <- drop(draw$beta)
-  if (matchtype == 0L) beta_dot <- beta_hat
-  if (matchtype == 2L) beta_hat <- beta_dot
 
   x_obs <- x[ry, , drop = FALSE]
   x_mis <- x[wy, , drop = FALSE]

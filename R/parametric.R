@@ -1,17 +1,21 @@
-parametric_component <- function(data, model, variable) {
+parametric_component <- function(data, model, variable, imputed) {
+  # Extract the imputation-model parameter draw beta and align coefficient names.
   beta <- setNames(as.numeric(model$beta.dot), model$xnames)
   names(beta)[names(beta) == ""] <- "(Intercept)"
-  terms <- setdiff(names(beta), "(Intercept)")
-  x <- as.matrix(data[terms])
-  if ("(Intercept)" %in% names(beta)) x <- cbind(`(Intercept)` = 1, x)
-  x <- x[, names(beta), drop = FALSE]
+  
+  # Design matrix for the imputation model.
+  x <- imputation_design(data, model)
+  # Completed outcome: contains observed values and imputed values.
   y <- data[[variable]]
-  imputed <- data[[paste0(".imputed_", variable)]]
+  # Indicator for whether each value of y was originally missing and then imputed.
   observed <- !imputed
 
   if (model$setup$method == "logreg") {
+    if (is.factor(y)) y <- as.integer(y) - 1L
     mean <- plogis(drop(x %*% beta))
+    # Individual score contribution for the imputation model.
     score <- x * (y - mean)
+    # Score Jacobian, using only originally observed outcomes.
     information <- -crossprod(x[observed, , drop = FALSE] *
                                 sqrt(mean[observed] * (1 - mean[observed]))) / nrow(data)
   } else {
@@ -22,6 +26,7 @@ parametric_component <- function(data, model, variable) {
     x_obs <- x[observed, , drop = FALSE]
     residual_obs <- residual[observed]
     p <- ncol(x)
+    # Jacobian of the score with respect to (beta, sigma^2).
     information <- matrix(0, p + 1L, p + 1L)
     information[seq_len(p), seq_len(p)] <- -crossprod(x_obs) / sigma2
     information[seq_len(p), p + 1L] <- -drop(crossprod(x_obs, residual_obs)) / sigma2^2
@@ -31,6 +36,9 @@ parametric_component <- function(data, model, variable) {
     information <- information / nrow(data)
   }
 
-  list(S_mis_imp = score * imputed,
-       d = t(-solve(information, t(score * observed))))
+  list(
+    # Score contributions from originally missing/imputed observations.
+    S_mis_imp = score * imputed,
+    # Influence contribution
+    d = t(-solve(information, t(score * observed))))
 }

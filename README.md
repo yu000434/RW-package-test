@@ -20,7 +20,7 @@ fitted imputation models through `tasks = "train"`.
 
 ``` r
 remotes::install_github("amices/mice@c9b67ae1cd54784267a01f1b70d93a40d509a5de")
-remotes::install_git("git@github.com:yu000434/RW-package-test.git")
+remotes::install_github("yu000434/RW-package-test")
 ```
 
 ## Parametric imputation
@@ -66,6 +66,11 @@ The `pmmrw` method uses the ordinary MICE donor draw and records the
 selected donor. The completed values are unchanged. The matching
 derivative is used only for variance estimation, and `pool_rw()`
 accounts for repeated use of the same donor.
+
+Use `tasks = "train"` with numeric PMM variables and `matchtype = 1`.
+The options `exclude = NULL`, `use.matcher = FALSE`, and `mlocal = 1`
+remain at their defaults. The donor pool size is controlled by `donors`
+(default 5).
 
 ``` r
 nhanes_pmm <- nhanes_scaled[c("age", "bmi")]
@@ -171,8 +176,36 @@ pool_rw(fit_gs_pmm, pmm_kappa = kappa)
 
 ## Current scope
 
-The package supports `norm` and `logreg` imputation with `lm()` or
-binomial `glm()` analysis. PMM pooling supports one numeric `pmmrw`
-variable as the response of `lm()` or as the predictor in the documented
-binomial analysis. Other PMM analyses can define their expected analysis
-score through `pmm_kappa()`.
+The package supports `norm` and `logreg` imputation with unweighted
+`lm()` or binomial `glm()` analysis using the default logit link.
+
+PMM variance estimation currently requires one numeric `pmmrw` variable
+with fully observed predictors in its matching model:
+
+- `pool_rw()` automatically handles an untransformed PMM response in
+  `lm()`. Analysis predictors and any subset must depend only on fully
+  observed variables.
+- `pmm_kappa_binomial()` handles `glm(D ~ A, family = binomial())`,
+  where `A` uses PMM and `D` uses `logreg`. The analysis can use all
+  rows or the subset `A > threshold`. The `logreg` model must include
+  `A` as an untransformed additive predictor; its other predictors must
+  be fully observed.
+- Other PMM analyses need an expected-score function supplied to
+  `pmm_kappa()`. Its arguments and required output are described in
+  `?pmm_kappa`.
+
+## Source files
+
+| File | Role |
+|:---|:---|
+| `R/pmmrw.R` | Standard MICE PMM draws and donor recording. |
+| `R/parametric.R` | Imputation scores and influence contributions for `norm` and `logreg`. |
+| `R/pmm.R` | PMM matching probabilities, derivatives, and expected-score cross terms. |
+| `R/analysis.R` | Analysis-model scores and their derivatives. |
+| `R/rw.R` | Fitting, RW variance assembly, pooling, and result methods. |
+
+Function comments in `R/` are kept short; the full reference pages are
+maintained in `man/`. `devtools::document()` updates `NAMESPACE` only.
+Edit `README.Rmd` and run `rmarkdown::render("README.Rmd")` to update
+this page and its example output. The package website is built from this
+README and the reference pages.

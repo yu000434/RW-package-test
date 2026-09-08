@@ -1,4 +1,5 @@
 ^simulation$
+^data-raw$
 ^draft$
 ^\.git$
 ^\.gitignore$

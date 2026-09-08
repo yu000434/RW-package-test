@@ -1,3 +1,23 @@
+test_that("top-k probabilities are invariant to a common intercept shift", {
+  x_obs <- cbind(`(Intercept)` = 1, x = seq(-2, 2, length.out = 12))
+  x_mis <- cbind(`(Intercept)` = 1, x = c(-1.5, 0, 1.5))
+  beta_hat <- c(0.5, 1)
+  beta_dot <- c(0.7, 0.9)
+  covariance <- diag(c(0.1, 0.2))
+  for (k in c(1L, 5L, nrow(x_obs))) {
+    matching <- topk_probability(x_obs, x_mis, beta_hat, beta_dot, covariance, k)
+    shifted <- topk_probability(x_obs, x_mis, beta_hat + c(2, 0),
+                                beta_dot + c(2, 0), covariance, k)
+    expect_equal(matching$probability, shifted$probability)
+    expect_equal(matching$derivative, shifted$derivative)
+    expect_true(all(matching$derivative[["(Intercept)"]] == 0))
+    expect_equal(colSums(matching$probability), rep(k, nrow(x_mis)))
+    expect_true(all(vapply(matching$derivative, function(x) {
+      max(abs(colSums(x))) < 1e-8
+    }, logical(1))))
+  }
+})
+
 test_that("pmmrw preserves MICE values and records donors", {
   set.seed(21)
   data <- data.frame(x = rnorm(120))
@@ -28,9 +48,46 @@ test_that("pmmrw preserves MICE values and records donors", {
     expect_equal(completed[missing], data$y[donor_id[missing, p]])
   }
 
-  pooled <- pool_rw(with_rw(recorded, lm(y ~ x)))
+  pooled <- pool_rw(with_rw(recorded, {
+    expect_setequal(ls(all.names = TRUE), names(recorded$data))
+    lm(y ~ x)
+  }))
   expect_true(all(is.finite(vcov(pooled))))
   expect_true(all(diag(vcov(pooled)) > 0))
+  expect_error(pool_rw(with_rw(recorded, lm(I(2 * y) ~ x))), "untransformed PMM variable")
+  expect_error(pool_rw(with_rw(recorded, lm(log(abs(y) + 1) ~ x))), "untransformed PMM variable")
+})
+
+test_that("pmmrw defaults and option restrictions are explicit", {
+  set.seed(25)
+  x <- matrix(rnorm(60), ncol = 1, dimnames = list(NULL, "x"))
+  y <- x[, 1] + rnorm(60)
+  ry <- seq_along(y) <= 40
+  args <- list(y = y, ry = ry, x = x, task = "train")
+  for (donors in list(5L, NULL, 0L, 100L)) {
+    model <- new.env()
+    set.seed(26)
+    implicit <- do.call(mice.impute.pmmrw, c(args, list(model = model, donors = donors)))
+    explicit_model <- new.env()
+    set.seed(26)
+    explicit <- do.call(mice.impute.pmmrw,
+                        c(args, list(wy = !ry, model = explicit_model, donors = donors)))
+    k <- if (is.null(donors)) round(sum(ry) / 600 + 7) else donors
+    k <- max(1L, min(k, sum(ry)))
+    expect_identical(implicit, explicit)
+    expect_identical(model$donor_id, explicit_model$donor_id)
+    expect_equal(model$setup$donors, k)
+    set.seed(26)
+    expect_identical(implicit, mice::mice.impute.pmm(y, ry, x, donors = k))
+  }
+  for (option in list(list(exclude = 0), list(use.matcher = TRUE),
+                      list(mlocal = 2L), list(matchtype = 0L), list(matchtype = 2L))) {
+    expect_error(do.call(mice.impute.pmmrw, c(args, list(model = new.env()), option)),
+                 "pmmrw.*requires")
+  }
+  expect_error(mice.impute.pmmrw(y, ry, x), 'tasks = "train"', fixed = TRUE)
+  expect_error(mice.impute.pmmrw(factor(y), ry, x, task = "train", model = new.env()),
+               "numeric variables only")
 })
 
 test_that("PMM works with downstream logreg and binomial analysis", {
@@ -59,4 +116,11 @@ test_that("PMM works with downstream logreg and binomial analysis", {
   expect_equal(dim(kappa), c(2, 3))
   expect_true(all(is.finite(vcov(pooled))))
   expect_true(all(diag(vcov(pooled)) > 0))
+
+  sigma <- imp$models$a[[1L]]$sigma.dot
+  tail_score <- pmm_score_binomial(fit, "a", 1L, is.na(data$a),
+                                   -c(10, 11, 12) * sigma, 0, 12L)
+  for (score in tail_score) {
+    expect_equal(as.vector(score), numeric(length(score)), tolerance = 1e-12)
+  }
 })

@@ -12,7 +12,10 @@ test_that("normal imputation works with linear analysis", {
   imp <- mice::mice(data, m = 2, method = method, predictorMatrix = pred,
                     tasks = "train", print = FALSE)
 
-  fit <- with_rw(imp, lm(y ~ x))
+  fit <- with_rw(imp, {
+    expect_setequal(ls(all.names = TRUE), names(imp$data))
+    lm(y ~ x)
+  })
   pooled <- pool_rw(fit)
 
   expect_s3_class(fit, "rw_fit")
