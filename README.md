@@ -25,11 +25,13 @@ remotes::install_github("yu000434/RW-package-test")
 
 ## Parametric imputation
 
-The `nhanes` dataset from `mice` contains missing values in `bmi`,
-`hyp`, and `chl`. The example below standardizes the variables and
-creates five imputed datasets using normal working models. Setting
-`tasks = "train"` retains the fitted imputation models needed for
-Robins-Wang variance estimation.
+The first step is to impute your data using `mice`. For parametric
+imputation, the package supports `method = "norm"` and
+`method = "logreg"`. When calling `mice`, set `tasks = "train"` to save
+the fitted imputation models needed by `with_rw()` and `pool_rw()`. The
+example below uses the `nhanes` data from the `mice` package. After
+standardizing the variables, it creates five imputed datasets using the
+`norm` method.
 
 ``` r
 library(rw)
