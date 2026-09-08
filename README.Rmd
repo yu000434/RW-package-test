@@ -26,28 +26,39 @@ The package requires the development version of `mice` that records fitted
 imputation models through `tasks = "train"`.
 
 ```r
-remotes::install_github("amices/mice@c9b67ae1cd54784267a01f1b70d93a40d509a5de")
+remotes::install_github("amices/mice@dev")
 remotes::install_github("yu000434/RW-package-test")
 ```
 
 ## Parametric imputation
 
-This example imputes the incomplete variables in the `nhanes` data using
-normal working models.
+The `nhanes` dataset from `mice` contains missing values in `bmi`, `hyp`, and
+`chl`. The example below standardizes the variables and creates five imputed
+datasets using normal working models. Setting `tasks = "train"` retains the
+fitted imputation models needed for Robins-Wang variance estimation.
 
 ```{r parametric, message=FALSE}
 library(rw)
 library(mice)
 
 nhanes_scaled <- as.data.frame(scale(nhanes))
-method <- make.method(nhanes_scaled)
-method[] <- ""
-method[c("bmi", "hyp", "chl")] <- "norm"
 
 set.seed(1)
-imp_norm <- mice(nhanes_scaled, method = method, m = 5,
+imp_norm <- mice(nhanes_scaled, method = "norm", m = 5,
                  tasks = "train", print = FALSE)
+```
+
+Use `with_rw()` to fit a linear regression of `bmi` on `age` and `hyp` in each
+completed dataset.
+
+```{r parametric-fit}
 fit_norm <- with_rw(imp_norm, lm(bmi ~ age + hyp))
+```
+
+Use `pool_rw()` to combine the coefficient estimates and compute Robins-Wang
+standard errors and confidence intervals.
+
+```{r parametric-pool}
 pool_rw(fit_norm)
 ```
 

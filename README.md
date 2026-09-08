@@ -19,34 +19,46 @@ The package requires the development version of `mice` that records
 fitted imputation models through `tasks = "train"`.
 
 ``` r
-remotes::install_github("amices/mice@c9b67ae1cd54784267a01f1b70d93a40d509a5de")
+remotes::install_github("amices/mice@dev")
 remotes::install_github("yu000434/RW-package-test")
 ```
 
 ## Parametric imputation
 
-This example imputes the incomplete variables in the `nhanes` data using
-normal working models.
+The `nhanes` dataset from `mice` contains missing values in `bmi`,
+`hyp`, and `chl`. The example below standardizes the variables and
+creates five imputed datasets using normal working models. Setting
+`tasks = "train"` retains the fitted imputation models needed for
+Robins-Wang variance estimation.
 
 ``` r
 library(rw)
 library(mice)
 
 nhanes_scaled <- as.data.frame(scale(nhanes))
-method <- make.method(nhanes_scaled)
-method[] <- ""
-method[c("bmi", "hyp", "chl")] <- "norm"
 
 set.seed(1)
-imp_norm <- mice(nhanes_scaled, method = method, m = 5,
+imp_norm <- mice(nhanes_scaled, method = "norm", m = 5,
                  tasks = "train", print = FALSE)
+```
+
+Use `with_rw()` to fit a linear regression of `bmi` on `age` and `hyp`
+in each completed dataset.
+
+``` r
 fit_norm <- with_rw(imp_norm, lm(bmi ~ age + hyp))
+```
+
+Use `pool_rw()` to combine the coefficient estimates and compute
+Robins-Wang standard errors and confidence intervals.
+
+``` r
 pool_rw(fit_norm)
 #> Robins-Wang pooled results
-#>         term    estimate std.error   statistic   p.value  conf.low conf.high
-#>  (Intercept) -0.02127991 0.7101366 -0.02996595 0.9763644 -1.494013  1.451453
-#>          age -0.68329820 1.5840270 -0.43136777 0.6703986 -3.968369  2.601773
-#>          hyp  0.15921513 2.1031229  0.07570415 0.9403387 -4.202395  4.520825
+#>         term    estimate std.error  statistic   p.value   conf.low conf.high
+#>  (Intercept) -0.04751093 0.3342549 -0.1421398 0.8882632 -0.7407131 0.6456912
+#>          age -0.45864607 0.5335550 -0.8596041 0.3992777 -1.5651715 0.6478794
+#>          hyp  0.17549617 1.3955382  0.1257552 0.9010679 -2.7186728 3.0696652
 ```
 
 For comparison, Rubin’s rules can be applied to the same imputations.
@@ -54,10 +66,10 @@ For comparison, Rubin’s rules can be applied to the same imputations.
 ``` r
 pool(with(imp_norm, lm(bmi ~ age + hyp))) |>
   summary()
-#>          term    estimate std.error   statistic        df    p.value
-#> 1 (Intercept) -0.02127991 0.2201983 -0.09663976 16.243158 0.92419483
-#> 2         age -0.68329820 0.2886778 -2.36699283 12.046683 0.03552134
-#> 3         hyp  0.15921513 0.3108677  0.51216365  5.073478 0.63004620
+#>          term    estimate std.error  statistic        df   p.value
+#> 1 (Intercept) -0.04751093 0.2077719 -0.2286686 15.029658 0.8222087
+#> 2         age -0.45864607 0.3618038 -1.2676651  4.179919 0.2709358
+#> 3         hyp  0.17549617 0.3683495  0.4764393  3.619564 0.6610792
 ```
 
 ## Predictive mean matching
