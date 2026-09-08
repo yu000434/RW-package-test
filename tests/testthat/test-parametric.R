@@ -23,6 +23,12 @@ test_that("normal imputation works with linear analysis", {
   expect_named(coef(pooled), c("(Intercept)", "x"))
   expect_equal(dim(vcov(pooled)), c(2, 2))
   expect_true(all(is.finite(vcov(pooled))))
+
+  output <- capture.output(printed <- withVisible(print(pooled)))
+  expect_true("Number of imputations: 2" %in% output)
+  expect_true("Sample size: 80" %in% output)
+  expect_identical(printed$value, pooled)
+  expect_false(printed$visible)
 })
 
 test_that("normal and logistic imputation work with binomial analysis", {

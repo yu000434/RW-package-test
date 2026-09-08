@@ -73,14 +73,12 @@ pool(with(imp_norm, lm(bmi ~ age + hyp))) |>
 
 ## Predictive mean matching
 
-The `pmmrw` method uses the ordinary MICE donor draw and records the selected
-donor. The completed values are unchanged. The matching derivative is used
-only for variance estimation, and `pool_rw()` accounts for repeated use of the
-same donor.
-
-Use `tasks = "train"` with numeric PMM variables and `matchtype = 1`.
-The options `exclude = NULL`, `use.matcher = FALSE`, and `mlocal = 1` remain
-at their defaults. The donor pool size is controlled by `donors` (default 5).
+For predictive mean matching, use `method = "pmmrw"` in `mice` and set
+`tasks = "train"`. This method makes the same donor draws as ordinary MICE
+PMM and saves the donor IDs and fitted matching models needed for variance
+estimation. The correction accounts for repeated use of the same donor;
+it does not change the imputed values. The example below imputes `bmi` using
+`age` as a predictor, with the default pool of five donors.
 
 ```{r pmm, message=FALSE}
 nhanes_pmm <- nhanes_scaled[c("age", "bmi")]
@@ -91,6 +89,14 @@ method["bmi"] <- "pmmrw"
 set.seed(2)
 imp_pmm <- mice(nhanes_pmm, method = method, m = 5,
                 tasks = "train", print = FALSE)
+```
+
+Next, use `with_rw()` to regress `bmi` on `age` in each completed dataset.
+Because the PMM variable is the response of a linear model, `pool_rw()`
+computes the PMM cross term and applies the donor-source correction
+automatically.
+
+```{r pmm-fit}
 fit_pmm <- with_rw(imp_pmm, lm(bmi ~ age))
 pool_rw(fit_pmm)
 ```
@@ -112,12 +118,16 @@ head(extract_donor_id(imp_pmm, "bmi"))
 
 ## Giganti and Shepherd example
 
-The package includes the simulated `giganti_data`. The first 500 observations
-are used here to keep the example short. Both `A` and `D` are incomplete.
+The package includes `giganti_data`, a simulated dataset based on
+[Giganti and Shepherd (2020)](https://doi.org/10.1093/aje/kwaa153).
+The example below uses all 4,000 observations. Validated values of `A` and `D`
+are available for 1,000 observations and are missing for the remainder.
+The analysis fits a logistic regression of `D` on `A` among observations
+with `A > 2`.
 
 ```{r gs-setup}
 data("giganti_data", package = "rw")
-gs <- giganti_data[seq_len(500), ]
+gs <- giganti_data
 predictors <- c("X1", "X2", "A.star", "D.star")
 
 pred <- make.predictorMatrix(gs)
@@ -163,32 +173,12 @@ pool_rw(fit_gs_pmm, pmm_kappa = kappa)
 
 ## Current scope
 
-The package supports `norm` and `logreg` imputation with unweighted `lm()` or
-binomial `glm()` analysis using the default logit link.
+Parametric imputation supports `norm` and `logreg` with unweighted `lm()` or
+binomial `glm()` analyses using the logit link.
 
-PMM variance estimation currently requires one numeric `pmmrw` variable with
-fully observed predictors in its matching model:
-
-- `pool_rw()` automatically handles an untransformed PMM response in `lm()`.
-  Analysis predictors and any subset must depend only on fully observed variables.
-- `pmm_kappa_binomial()` handles `glm(D ~ A, family = binomial())`, where `A`
-  uses PMM and `D` uses `logreg`. The analysis can use all rows or the subset
-  `A > threshold`. The `logreg` model must include `A` as an untransformed
-  additive predictor; its other predictors must be fully observed.
-- Other PMM analyses need an expected-score function supplied to `pmm_kappa()`.
-  Its arguments and required output are described in `?pmm_kappa`.
-
-## Source files
-
-| File | Role |
-|:-----|:-----|
-| `R/pmmrw.R` | Standard MICE PMM draws and donor recording. |
-| `R/parametric.R` | Imputation scores and influence contributions for `norm` and `logreg`. |
-| `R/pmm.R` | PMM matching probabilities, derivatives, and expected-score cross terms. |
-| `R/analysis.R` | Analysis-model scores and their derivatives. |
-| `R/rw.R` | Fitting, RW variance assembly, pooling, and result methods. |
-
-Function comments in `R/` are kept short; the full reference pages are maintained
-in `man/`. `devtools::document()` updates `NAMESPACE` only. Edit `README.Rmd`
-and run `rmarkdown::render("README.Rmd")` to update this page and its example
-output. The package website is built from this README and the reference pages.
+PMM supports one numeric imputed variable with fully observed matching
+predictors. Use `pool_rw()` for an untransformed PMM response in `lm()`, or
+`pmm_kappa_binomial()` for the binomial setting shown above. Other PMM
+analyses require an expected-score function passed to `pmm_kappa()`.
+See `?pool_rw` and `?pmm_kappa` for the supported model structures, and
+`?mice.impute.pmmrw` for PMM options.

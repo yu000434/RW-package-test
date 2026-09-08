@@ -151,8 +151,9 @@ summary.rw_pool <- function(object, ...) {
 
 #' @export
 print.rw_pool <- function(x, ...) {
-  cat("Robins-Wang pooled results\n")
-  print(summary(x), row.names = FALSE)
+  cat("\nRobins-Wang pooled results\n-------------------------\n")
+  cat("Number of imputations: ", x$m, "\nSample size: ", x$n, "\n\n", sep = "")
+  print(summary(x), digits = 4, row.names = FALSE)
   invisible(x)
 }
 

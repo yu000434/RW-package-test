@@ -56,11 +56,16 @@ Robins-Wang standard errors and confidence intervals.
 
 ``` r
 pool_rw(fit_norm)
+#> 
 #> Robins-Wang pooled results
-#>         term    estimate std.error  statistic   p.value   conf.low conf.high
-#>  (Intercept) -0.04751093 0.3342549 -0.1421398 0.8882632 -0.7407131 0.6456912
-#>          age -0.45864607 0.5335550 -0.8596041 0.3992777 -1.5651715 0.6478794
-#>          hyp  0.17549617 1.3955382  0.1257552 0.9010679 -2.7186728 3.0696652
+#> -------------------------
+#> Number of imputations: 5
+#> Sample size: 25
+#> 
+#>         term estimate std.error statistic p.value conf.low conf.high
+#>  (Intercept) -0.04751    0.3343   -0.1421  0.8883  -0.7407    0.6457
+#>          age -0.45865    0.5336   -0.8596  0.3993  -1.5652    0.6479
+#>          hyp  0.17550    1.3955    0.1258  0.9011  -2.7187    3.0697
 ```
 
 For comparison, Rubin’s rules can be applied to the same imputations.
@@ -76,15 +81,13 @@ pool(with(imp_norm, lm(bmi ~ age + hyp))) |>
 
 ## Predictive mean matching
 
-The `pmmrw` method uses the ordinary MICE donor draw and records the
-selected donor. The completed values are unchanged. The matching
-derivative is used only for variance estimation, and `pool_rw()`
-accounts for repeated use of the same donor.
-
-Use `tasks = "train"` with numeric PMM variables and `matchtype = 1`.
-The options `exclude = NULL`, `use.matcher = FALSE`, and `mlocal = 1`
-remain at their defaults. The donor pool size is controlled by `donors`
-(default 5).
+For predictive mean matching, use `method = "pmmrw"` in `mice` and set
+`tasks = "train"`. This method makes the same donor draws as ordinary
+MICE PMM and saves the donor IDs and fitted matching models needed for
+variance estimation. The correction accounts for repeated use of the
+same donor; it does not change the imputed values. The example below
+imputes `bmi` using `age` as a predictor, with the default pool of five
+donors.
 
 ``` r
 nhanes_pmm <- nhanes_scaled[c("age", "bmi")]
@@ -95,12 +98,25 @@ method["bmi"] <- "pmmrw"
 set.seed(2)
 imp_pmm <- mice(nhanes_pmm, method = method, m = 5,
                 tasks = "train", print = FALSE)
+```
+
+Next, use `with_rw()` to regress `bmi` on `age` in each completed
+dataset. Because the PMM variable is the response of a linear model,
+`pool_rw()` computes the PMM cross term and applies the donor-source
+correction automatically.
+
+``` r
 fit_pmm <- with_rw(imp_pmm, lm(bmi ~ age))
 pool_rw(fit_pmm)
+#> 
 #> Robins-Wang pooled results
-#>         term   estimate std.error  statistic   p.value   conf.low  conf.high
-#>  (Intercept)  0.1041708 0.2422202  0.4300667 0.6711499 -0.3968998 0.60524153
-#>          age -0.3035738 0.1943690 -1.5618422 0.1319808 -0.7056568 0.09850922
+#> -------------------------
+#> Number of imputations: 5
+#> Sample size: 25
+#> 
+#>         term estimate std.error statistic p.value conf.low conf.high
+#>  (Intercept)   0.1042    0.2422    0.4301  0.6711  -0.3969   0.60524
+#>          age  -0.3036    0.1944   -1.5618  0.1320  -0.7057   0.09851
 ```
 
 Using the same seed with ordinary MICE PMM gives the same completed
@@ -129,13 +145,16 @@ head(extract_donor_id(imp_pmm, "bmi"))
 
 ## Giganti and Shepherd example
 
-The package includes the simulated `giganti_data`. The first 500
-observations are used here to keep the example short. Both `A` and `D`
-are incomplete.
+The package includes `giganti_data`, a simulated dataset based on
+[Giganti and Shepherd (2020)](https://doi.org/10.1093/aje/kwaa153). The
+example below uses all 4,000 observations. Validated values of `A` and
+`D` are available for 1,000 observations and are missing for the
+remainder. The analysis fits a logistic regression of `D` on `A` among
+observations with `A > 2`.
 
 ``` r
 data("giganti_data", package = "rw")
-gs <- giganti_data[seq_len(500), ]
+gs <- giganti_data
 predictors <- c("X1", "X2", "A.star", "D.star")
 
 pred <- make.predictorMatrix(gs)
@@ -160,10 +179,15 @@ fit_gs_norm <- with_rw(
   glm(D ~ A, subset = A > 2, family = binomial())
 )
 pool_rw(fit_gs_norm)
+#> 
 #> Robins-Wang pooled results
-#>         term   estimate std.error statistic      p.value   conf.low conf.high
-#>  (Intercept) -3.0864612 0.6738210 -4.580536 4.637867e-06 -4.4071261 -1.765796
-#>            A  0.9385706 0.2255057  4.162070 3.153760e-05  0.4965875  1.380554
+#> -------------------------
+#> Number of imputations: 2
+#> Sample size: 4000
+#> 
+#>         term estimate std.error statistic   p.value conf.low conf.high
+#>  (Intercept)  -2.9450   0.25162   -11.704 1.211e-31  -3.4382   -2.4519
+#>            A   0.6941   0.08243     8.421 3.728e-17   0.5326    0.8557
 ```
 
 For predictive mean matching, `pmm_kappa_binomial()` computes the PMM
@@ -182,44 +206,25 @@ fit_gs_pmm <- with_rw(
 )
 kappa <- pmm_kappa_binomial(fit_gs_pmm, "A", threshold = 2)
 pool_rw(fit_gs_pmm, pmm_kappa = kappa)
+#> 
 #> Robins-Wang pooled results
-#>         term   estimate std.error statistic    p.value   conf.low  conf.high
-#>  (Intercept) -2.4084915 1.1015650 -2.186427 0.02878438 -4.5675192 -0.2494637
-#>            A  0.6485696 0.3549776  1.827072 0.06768899 -0.0471738  1.3443130
+#> -------------------------
+#> Number of imputations: 2
+#> Sample size: 4000
+#> 
+#>         term estimate std.error statistic   p.value conf.low conf.high
+#>  (Intercept)  -3.3101    0.3081   -10.742 6.449e-27  -3.9141   -2.7062
+#>            A   0.8014    0.1001     8.008 1.166e-15   0.6053    0.9975
 ```
 
 ## Current scope
 
-The package supports `norm` and `logreg` imputation with unweighted
-`lm()` or binomial `glm()` analysis using the default logit link.
+Parametric imputation supports `norm` and `logreg` with unweighted
+`lm()` or binomial `glm()` analyses using the logit link.
 
-PMM variance estimation currently requires one numeric `pmmrw` variable
-with fully observed predictors in its matching model:
-
-- `pool_rw()` automatically handles an untransformed PMM response in
-  `lm()`. Analysis predictors and any subset must depend only on fully
-  observed variables.
-- `pmm_kappa_binomial()` handles `glm(D ~ A, family = binomial())`,
-  where `A` uses PMM and `D` uses `logreg`. The analysis can use all
-  rows or the subset `A > threshold`. The `logreg` model must include
-  `A` as an untransformed additive predictor; its other predictors must
-  be fully observed.
-- Other PMM analyses need an expected-score function supplied to
-  `pmm_kappa()`. Its arguments and required output are described in
-  `?pmm_kappa`.
-
-## Source files
-
-| File | Role |
-|:---|:---|
-| `R/pmmrw.R` | Standard MICE PMM draws and donor recording. |
-| `R/parametric.R` | Imputation scores and influence contributions for `norm` and `logreg`. |
-| `R/pmm.R` | PMM matching probabilities, derivatives, and expected-score cross terms. |
-| `R/analysis.R` | Analysis-model scores and their derivatives. |
-| `R/rw.R` | Fitting, RW variance assembly, pooling, and result methods. |
-
-Function comments in `R/` are kept short; the full reference pages are
-maintained in `man/`. `devtools::document()` updates `NAMESPACE` only.
-Edit `README.Rmd` and run `rmarkdown::render("README.Rmd")` to update
-this page and its example output. The package website is built from this
-README and the reference pages.
+PMM supports one numeric imputed variable with fully observed matching
+predictors. Use `pool_rw()` for an untransformed PMM response in `lm()`,
+or `pmm_kappa_binomial()` for the binomial setting shown above. Other
+PMM analyses require an expected-score function passed to `pmm_kappa()`.
+See `?pool_rw` and `?pmm_kappa` for the supported model structures, and
+`?mice.impute.pmmrw` for PMM options.
