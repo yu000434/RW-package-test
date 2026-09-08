@@ -74,7 +74,7 @@ pool(with(imp_norm, lm(bmi ~ age + hyp))) |>
 ## Predictive mean matching
 
 For predictive mean matching, use `method = "pmmrw"` in `mice` and set
-`tasks = "train"`. This method makes the same donor draws as ordinary MICE
+`tasks = "train"`. This method makes the same donor draws as MICE
 PMM and saves the donor IDs and fitted matching models needed for variance
 estimation. The correction accounts for repeated use of the same donor;
 it does not change the imputed values. The example below imputes `bmi` using
@@ -101,7 +101,7 @@ fit_pmm <- with_rw(imp_pmm, lm(bmi ~ age))
 pool_rw(fit_pmm)
 ```
 
-Using the same seed with ordinary MICE PMM gives the same completed values.
+Using the same seed with MICE PMM gives the same completed values.
 
 ```{r pmm-parity, message=FALSE}
 method["bmi"] <- "pmm"
