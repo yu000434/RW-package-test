@@ -81,23 +81,20 @@ pool(with(imp_norm, lm(bmi ~ age + hyp))) |>
 
 ## Predictive mean matching
 
-For predictive mean matching, use `method = "pmmrw"` in `mice` and set
-`tasks = "train"`. This method makes the same donor draws as
-MICE PMM and saves the donor IDs and fitted matching models needed for
-variance estimation. The correction accounts for repeated use of the
-same donor; it does not change the imputed values. The example below
-imputes `bmi` using `age` as a predictor, with the default pool of five
-donors.
+For predictive mean matching, set the imputation method to `"pmmrw"` for
+the incomplete variable and use `tasks = "train"` in `mice`. This method
+uses the PMM donor draw implemented in `mice` and saves the donor IDs
+and fitted matching models needed for variance estimation. The
+correction accounts for repeated use of the same donor; it does not
+change the imputed values. The example below imputes `bmi` using `age`
+as a predictor, with the default pool of five donors.
 
 ``` r
 nhanes_pmm <- nhanes_scaled[c("age", "bmi")]
-method <- make.method(nhanes_pmm)
-method[] <- ""
-method["bmi"] <- "pmmrw"
 
 set.seed(2)
-imp_pmm <- mice(nhanes_pmm, method = method, m = 5,
-                tasks = "train", print = FALSE)
+imp_pmm <- mice(nhanes_pmm, method = c(age = "", bmi = "pmmrw"),
+                m = 5, tasks = "train", print = FALSE)
 ```
 
 Next, use `with_rw()` to regress `bmi` on `age` in each completed
@@ -119,13 +116,13 @@ pool_rw(fit_pmm)
 #>          age  -0.3036    0.1944   -1.5618  0.1320  -0.7057   0.09851
 ```
 
-Using the same seed with MICE PMM gives the same completed
+Using the same seed with `method = "pmm"` gives the same completed
 values.
 
 ``` r
-method["bmi"] <- "pmm"
 set.seed(2)
-imp_standard <- mice(nhanes_pmm, method = method, m = 5, print = FALSE)
+imp_standard <- mice(nhanes_pmm, method = c(age = "", bmi = "pmm"),
+                     m = 5, print = FALSE)
 identical(imp_pmm$imp$bmi, imp_standard$imp$bmi)
 #> [1] TRUE
 ```
@@ -147,10 +144,9 @@ head(extract_donor_id(imp_pmm, "bmi"))
 
 The package includes `giganti_data`, a simulated dataset based on
 [Giganti and Shepherd (2020)](https://doi.org/10.1093/aje/kwaa153). The
-example below uses all 4,000 observations. Validated values of `A` and
-`D` are available for 1,000 observations and are missing for the
-remainder. The analysis fits a logistic regression of `D` on `A` among
-observations with `A > 2`.
+variables `A` and `D` are observed only in a validation subsample of
+1,000 individuals. The analysis model is a logistic regression of `D` on
+`A`, with inclusion restricted to `A > 2`.
 
 ``` r
 data("giganti_data", package = "rw")
@@ -219,8 +215,8 @@ pool_rw(fit_gs_pmm, pmm_kappa = kappa)
 
 ## Current scope
 
-Parametric imputation supports `norm` and `logreg` with unweighted
-`lm()` or binomial `glm()` analyses using the logit link.
+Parametric imputation supports `norm` and `logreg` with `lm()` or
+binomial `glm()` analyses.
 
 PMM supports one numeric imputed variable with fully observed matching
 predictors. Use `pool_rw()` for an untransformed PMM response in `lm()`,
