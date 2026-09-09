@@ -49,13 +49,6 @@ original task tables, seeds and result columns are unchanged.
 For the GS generator and `A > 2`, it is approximately `0.885377976781648`,
 obtained by numerical integration of the population logistic score.
 The same value is used for all sample sizes and imputation settings.
-For RW, `beta0 = 1`, except for S3b: the quadratic mean gives the
-no-intercept linear slope `1.689707792207792`. S3a and S3b are extensions
-of the original RW settings.
-
-Earlier saved results used a per-sample GS coefficient and `1` for RW S3b.
-Their `beta0`, bias and true-target coverage are not comparable to new runs.
-Empirical-centered coverage remains a separate variance diagnostic.
 
 ## Simulation scripts
 
