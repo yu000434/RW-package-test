@@ -1,6 +1,7 @@
-# Generates one GS simulation dataset and its true target coefficient.
+# Generates one GS simulation dataset and its population target coefficient.
 
 make_gs_data <- function(seed, obs = 4000, subsample_n = 1000, threshold = 2) {
+  if (threshold != 2) stop("GS beta0 is available only for threshold = 2.")
   set.seed(seed)
 
   X <- mvtnorm::rmvnorm(obs, c(0, 0), matrix(c(1, -0.25, -0.25, 1), 2, 2))
@@ -29,6 +30,7 @@ make_gs_data <- function(seed, obs = 4000, subsample_n = 1000, threshold = 2) {
   dat$A[-validated] <- NA
   dat$D[-validated] <- NA
 
-  beta0 <- coef(glm(D ~ A, data = subset(dat_full, A > threshold), family = binomial()))[["A"]]
+  # Population slope for glm(D ~ A, subset = A > 2), computed by quadrature.
+  beta0 <- 0.885377976781648
   list(dat = dat, beta0 = beta0)
 }

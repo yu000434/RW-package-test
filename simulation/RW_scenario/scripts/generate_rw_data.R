@@ -1,4 +1,4 @@
-# Generates one Robins--Wang simulation dataset and its true coefficient.
+# Generates one Robins--Wang simulation dataset and its population target coefficient.
 
 make_rw_data <- function(seed, n = 2000, type = "robins_1") {
   set.seed(seed)
@@ -25,5 +25,7 @@ make_rw_data <- function(seed, n = 2000, type = "robins_1") {
 
   dat <- data.frame(ID = seq_len(n), Z = Z, X = X, A = A, ImputedZ = as.integer(R == 0))
   dat$Z[R == 0] <- NA
-  list(dat = dat, beta0 = 1, scenario = type)
+  # For the quadratic mean, the no-intercept slope is 1 + 0.5 * E[X^3] / E[X^2].
+  beta0 <- if (type == "robins_3_2") 1.689707792207792 else 1
+  list(dat = dat, beta0 = beta0, scenario = type)
 }
