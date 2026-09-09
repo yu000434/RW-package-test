@@ -22,7 +22,11 @@ raw <- do.call(rbind, lapply(seq_len(task$reps), function(i) {
   do.call(rbind, lapply(seq_along(scenarios), function(j) {
     offset <- if (task$imputation == "pmm") (j - 1L) * 100000L else 0L
     seed <- task$base_seed + i - 1L + offset
+    message(sprintf("%s | task=%d replicate=%d/%d scenario=%s seed=%d START",
+                    Sys.time(), task_id, i, task$reps, names(scenarios)[[j]], seed))
     out <- run_one_rw(seed, scenarios[[j]], task$n, task$m, task$k, task$imputation)
+    message(sprintf("%s | task=%d replicate=%d/%d scenario=%s DONE",
+                    Sys.time(), task_id, i, task$reps, names(scenarios)[[j]]))
     cbind(task[c("task_id", "run_id", "chunk_id")],
           scenario_label = names(scenarios)[[j]], out)
   }))

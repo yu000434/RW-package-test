@@ -18,7 +18,11 @@ if (nrow(task) != 1L) stop("TASK_ID must identify one task.")
 
 raw <- do.call(rbind, lapply(seq_len(task$reps), function(i) {
   seed <- task$base_seed + i - 1L
+  message(sprintf("%s | task=%d replicate=%d/%d seed=%d START",
+                  Sys.time(), task_id, i, task$reps, seed))
   out <- run_one_gs(seed, task$n, task$validated, task$m, task$k, task$imputation)
+  message(sprintf("%s | task=%d replicate=%d/%d DONE",
+                  Sys.time(), task_id, i, task$reps))
   cbind(task[c("task_id", "run_id", "cell_id", "chunk_id")], out)
 }))
 
