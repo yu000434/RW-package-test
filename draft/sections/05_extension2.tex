@@ -1,0 +1,375 @@
+\subsection{RW variance estimation with predictive mean matching}
+\label{extension-2}
+Predictive mean matching (PMM) is attractive in medical applications
+because it imputes plausible observed values rather than unrestricted
+model-based draws: the imputed value is not a prediction but a copy of an
+actual observed record, which respects distributional constraints that a
+parametric draw might violate.  The same feature, however, creates two
+problems for the RW variance construction that do not arise in fully
+parametric imputation.
+
+The first problem concerns differentiation of the donor-selection rule.
+Standard PMM selects
+the donor by finding the \(k\) observed records whose predictive mean is
+closest to the recipient's predictive mean, the donor pool, and sampling
+one uniformly from that pool. This nearest-neighbor rule is a step
+function of the imputation parameter \(\psi\): a small shift in \(\psi\)
+that does not change the donor pool produces no change in the donor
+probabilities, while a shift that just excludes a current neighbor
+produces a discontinuous jump. A direct log-gradient of the selected
+donor's probability is therefore zero wherever the pool is unchanged
+and undefined at a boundary. It does not provide a regular missing-value
+score for the RW cross-moment \(\kappa=E\{US_{\mathrm{mis}}^\top\}\).
+This difficulty does not prevent calculation of the fitted regression's
+influence contributions \(d_i\) or their second moment \(\alpha\).
+
+The second problem is that PMM induces correlation between recipients
+that share a donor.  When several missing recipients copy from the same
+observed donor, their completed-data analysis scores share a common
+stochastic source, the value of the donor record
+\citep{rao1992jackknife, chen2002common}.
+A random shift in the donor's observed value can affect several
+recipient scores simultaneously. The rowwise second moment
+\(\sum_i U_i U_i^\top\) does not include cross-products between these
+records. Their omission need not always decrease the estimated variance;
+the direction depends on the analysis scores.
+
+In this section, we propose an RW estimator that addresses each of
+these problems at the specific variance component it affects; we call
+this estimator RW-PMM, to contrast with the RW-MICE estimator of
+Section~\ref{extension-1}.  Section~\ref{smooth-copied-donor}
+defines a differentiable working probability for calculating
+\(\widehat\kappa\), without changing the imputations produced by
+\texttt{mice}. Section~\ref{donor-source-analysis-scores} aggregates
+analysis scores by their recorded donor to construct
+\(\widehat\Omega\) and \(\widehat C\). These are working approximations
+for variance estimation, not changes to the PMM sampling rule.
+\subsubsection{Donor probabilities for variance estimation}
+\label{smooth-copied-donor}
+Consider one continuous variable \(A\) imputed by PMM, with observed
+and missing sets \(\mathcal O_A\) and \(\mathcal M_A\). Let
+\(x_i\in\mathbb R^c\) contain the fully observed matching predictors,
+including an intercept. Under the default matching rule in \texttt{mice},
+observed donors use the fitted regression coefficient
+\(\hat\psi^{(p)}\), whereas recipients use a coefficient draw
+\(\dot\psi^{(p)}\). Their matching predictions are
+\[
+a_j^{(p)}=x_j^\top\hat\psi^{(p)},\qquad
+t_i^{(p)}=x_i^\top\dot\psi^{(p)}.
+\]
+Let \(\mathcal N_i^{(p)}\) contain the \(k\) donor predictions closest
+to \(t_i^{(p)}\). The actual imputation is unchanged:
+\[
+P\{J_i^{(p)}=j\mid\text{fitted model and coefficient draw}\}
+=\frac{\mathbf 1\{j\in\mathcal N_i^{(p)}\}}{k},
+\qquad A_i^{(p)}=A_{J_i^{(p)}}^{\mathrm{obs}}.
+\]
+The selected donor IDs and completed values are retained exactly.
+
+For the variance calculation, suppress the superscript \(p\) temporarily
+and order the \(N=|\mathcal O_A|\) donor predictions as
+\(a_{(1)}<\cdots<a_{(N)}\). The following derivatives assume distinct
+predictions and a locally unchanged ordering. Donor \((r)\) is among
+the \(k\) nearest donors to a scalar prediction \(t\) precisely when
+\(\ell_{(r)}<t<u_{(r)}\), apart from ties at the endpoints, where
+\[
+\ell_{(r)}=
+\begin{cases}
+-\infty,&r\leq k,\\
+(a_{(r-k)}+a_{(r)})/2,&r>k,
+\end{cases}
+\qquad
+u_{(r)}=
+\begin{cases}
+(a_{(r)}+a_{(r+k)})/2,&r+k\leq N,\\
+\infty,&r+k>N.
+\end{cases}
+\]
+These midpoints are the locations at which a competing donor enters or
+leaves the nearest \(k\) positions.
+
+Define an auxiliary prediction \(T_i=t_i+s_i Z\), where
+\(Z\sim N(0,1)\) and
+\[
+s_i^2=x_i^\top\Sigma x_i,\qquad \Sigma=\sigma^2 V.
+\]
+Here \(\sigma\) is the residual standard-deviation draw from the PMM
+regression, and \(V\) is its fitted coefficient covariance factor.
+For a full-rank unregularized fit,
+\(V=(X_{\mathcal O_A}^\top X_{\mathcal O_A})^{-1}\); the implementation
+uses the factor from the \texttt{mice} regression fit. Integrating the
+uniform top-\(k\) selection rule over this auxiliary normal distribution
+gives the working donor probability
+\begin{equation}
+p_{ij}=\frac{1}{k}
+\left\{\Phi\!\left(\frac{u_j-t_i}{s_i}\right)
+-\Phi\!\left(\frac{\ell_j-t_i}{s_i}\right)\right\}.
+\label{pmm-probability}
+\end{equation}
+The expression in braces is the probability of entering the donor pool;
+division by \(k\) gives the probability of selection. Thus
+\(\sum_{j\in\mathcal O_A}p_{ij}=1\). No auxiliary prediction is drawn
+when imputing the data, and the recorded donors are not sampled again
+from \(p_{ij}\). Equation~\eqref{pmm-probability} is a normal working
+approximation for variance estimation, not the conditional sampling
+probability of the recorded \texttt{mice} donor. Its smoothing scale is
+determined by the fitted regression covariance; no additional bandwidth
+is selected to target a particular coverage level.
+
+To differentiate, shift both \(\hat\psi\) and \(\dot\psi\) by the same
+vector \(\delta\), holding their difference and \(\Sigma\) fixed. This
+allows both donor predictions and the recipient prediction to move.
+For finite endpoints, their derivatives are
+\[
+\dot\ell_{(r)}=(x_{(r-k)}+x_{(r)})/2,\qquad
+\dot u_{(r)}=(x_{(r)}+x_{(r+k)})/2.
+\]
+Writing \(z_{ij}^{u}=(u_j-t_i)/s_i\) and
+\(z_{ij}^{\ell}=(\ell_j-t_i)/s_i\), differentiation gives
+\begin{equation}
+\dot p_{ij}:=\left.\nabla_\delta p_{ij}(\delta)\right|_{\delta=0}
+=\frac{\phi(z_{ij}^{u})(\dot u_j-x_i)
+-\phi(z_{ij}^{\ell})(\dot\ell_j-x_i)}{k s_i}.
+\label{pmm-probability-derivative}
+\end{equation}
+Terms corresponding to infinite endpoints are zero. The derivatives
+sum to zero over donors. An intercept shift moves all predictions
+equally, so its derivative is zero; this does not force the derivatives
+for the other coefficients to vanish. Holding \(\Sigma\) fixed is part
+of the working linearization, not a claim that its estimation adds no
+uncertainty.
+
+\subsubsection{Expected analysis scores and the PMM cross-moment}
+The RW cross-moment involves the analysis score as well as the
+imputation score. Under the working donor law, define
+\(S_{ij}=\dot p_{ij}/p_{ij}\) for \(p_{ij}>0\). Let \(G_{ij}^{(p)}\)
+be a working expectation of recipient \(i\)'s analysis score when
+donor \(j\) is considered. Then
+\[
+\sum_{j\in\mathcal O_A}p_{ij}^{(p)}G_{ij}^{(p)}S_{ij}^{(p)\top}
+=\sum_{j\in\mathcal O_A}G_{ij}^{(p)}\dot p_{ij}^{(p)\top}.
+\]
+This identity motivates averaging over candidate donors when calculating
+the PMM columns of \(\kappa\), rather than multiplying the realized
+recipient score by the working score of its selected donor:
+\begin{equation}
+\widehat\kappa_{\mathrm{PMM}}
+=\frac{1}{nm}\sum_{p=1}^m\sum_{i\in\mathcal M_A}
+\sum_{j\in\mathcal O_A}G_{ij}^{(p)}\dot p_{ij}^{(p)\top}.
+\label{pmm-kappa}
+\end{equation}
+Only the donor probabilities are differentiated here; the calculation
+does not add a term involving \(\partial G_{ij}/\partial\psi\).
+The identity is exact under the working law, but its use for imputations
+from \texttt{mice} remains an approximation.
+
+To compute \(G_{ij}^{(p)}\), the donor value is integrated under the
+fitted normal working model
+\(A_j^\dagger\sim N(a_j^{(p)},(\sigma^{(p)})^2)\), rather than fixed
+at its observed value. The recipient's own observed covariates are
+retained. If a subsequent variable is imputed using \(A\) as a predictor,
+its distribution is evaluated at \(A_j^\dagger\) using the recorded
+conditional model. In notation,
+\[
+G_{ij}^{(p)}
+=E_{\mathrm{work}}\!\left[
+U_i\{A_j^\dagger,Y_i^\dagger;\hat\beta^{(p)}\}
+\mid\text{fitted models and recipient's observed covariates}
+\right],
+\]
+where \(Y_i^\dagger\) denotes any such subsequent imputed variable;
+observed outcomes are kept fixed. The analysis contribution includes its
+original subset indicator. This expectation is used only in
+\eqref{pmm-kappa}, not to replace any completed value or the analysis
+scores used in donor-source aggregation.
+
+For example, if \(A\) is the response in a linear analysis with fully
+observed design vector \(z_i\) and fitted residual variance
+\(\hat v^{(p)}\), then
+\[
+U_i^{(p)}=\frac{z_i\{A_i^{(p)}-z_i^\top\hat\beta^{(p)}\}}{\hat v^{(p)}},
+\qquad
+G_{ij}^{(p)}=\frac{z_i\{a_j^{(p)}-z_i^\top\hat\beta^{(p)}\}}{\hat v^{(p)}}.
+\]
+For a logistic analysis of \(D\) on \(A\) restricted to \(A>c_0\), let
+\(z(a)=(1,a)^\top\) and
+\(\pi_\beta(a)=\expit\{z(a)^\top\beta\}\). Let \(h_i^{(p)}(a)\)
+be the probability of \(D_i=1\) under its recorded logistic imputation
+model, evaluated at \(A=a\); if \(D_i\) is observed, set
+\(h_i^{(p)}(a)=D_i\). The required expectation is
+\begin{equation}
+G_{ij}^{(p)}=\int_{c_0}^{\infty}
+z(a)\{h_i^{(p)}(a)-\pi_{\hat\beta^{(p)}}(a)\}
+\frac{1}{\sigma^{(p)}}
+\phi\!\left(\frac{a-a_j^{(p)}}{\sigma^{(p)}}\right)\,da.
+\label{pmm-binomial-score}
+\end{equation}
+The integral is not divided by the probability of inclusion: excluded
+records contribute zero to the estimating equation normalized by the
+full sample size \(n\). It is evaluated numerically using 24-point
+Gauss--Legendre quadrature, truncating the standardized normal variable
+to \([-10,10]\). Thus the definition of \(G_{ij}\) depends on the
+analysis model and any subsequent imputation model, while the donor
+probability and its derivative have the same form in both examples.
+\subsubsection{Donor-source analysis scores}
+\label{donor-source-analysis-scores}
+Donor reuse introduces a shared observed value into several completed
+records. When recipient \(i_1\)
+and recipient \(i_2\) both copy their imputed value from the same observed
+donor \(j\), the two completed values are the same observed record
+\(A_j^{\mathrm{obs}}\).  Any random variation in \(A_j^{\mathrm{obs}}\) simultaneously affects
+the imputed value for \(i_1\) and \(i_2\).  Their analysis scores
+\(U_{i_1}^{(p)}\) and \(U_{i_2}^{(p)}\) share the stochastic source
+\(A_j^{\mathrm{obs}}\) across repeated samples. This is distinct from
+conditional independence of donor draws given a fixed observed dataset.
+To represent donor reuse in the variance calculation, each recipient's
+analysis score is assigned to its recorded donor.
+Let \(U_i^{(p)}(\beta)\) be the completed-data analysis estimating
+function contribution for subject \(i\) in imputation \(p\). If recipient
+\(i\) copied \(A\) from observed donor \(J_i^{(p)}=j\), then the
+stochastic source of the copied \(A\) value is the donor record \(j\).
+The donor-source analysis score for observed donor \(j\) is
+\[
+\widetilde U_j^{(p)}(\beta)
+=
+U_j^{(p)}(\beta)
++
+\sum_{i:J_i^{(p)}=j} U_i^{(p)}(\beta).
+\]
+The recipient contribution \(U_i^{(p)}(\beta)\) is evaluated using
+recipient \(i\)'s completed analysis record; only its stochastic source
+is assigned to donor \(j\) for covariance estimation. Rows whose PMM
+contribution has been moved to their donor source are set to zero in the
+donor-source representation, and rows not involved in the PMM donor map
+remain singleton rows. This operation preserves the estimating equation,
+\[
+\sum_{i=1}^n U_i^{(p)}(\beta)
+=
+\sum_{i=1}^n \widetilde U_i^{(p)}(\beta),
+\]
+so the point estimator is unchanged; only the covariance representation
+of the first-order analysis scores changes.
+This donor-source step is the estimating-equation analogue of the
+hot-deck and nearest-neighbor variance idea that an observed donor is the
+sampling source for both its own completed record and the recipient
+records that copy from it
+\citep{rao1992jackknife,chen2002common,kim2004fractional,yang2020pmm}.
+If donor \(j\) supplies values for recipients \(i_1,\ldots,i_r\), the
+ordinary rowwise meat contains
+\[
+U_jU_j^\top+\sum_{\ell=1}^r U_{i_\ell}U_{i_\ell}^\top,
+\]
+whereas the donor-source meat contains
+\[
+\Bigl(U_j+\sum_{\ell=1}^rU_{i_\ell}\Bigr)
+\Bigl(U_j+\sum_{\ell=1}^rU_{i_\ell}\Bigr)^\top .
+\]
+The second expression includes all cross-products among records sharing
+the same observed donor source.  Expanding, the donor-source meat for
+donor \(j\) equals the rowwise meat plus the correction terms
+\(U_j\sum_\ell U_{i_\ell}^\top + \sum_\ell U_{i_\ell}U_j^\top +
+\sum_{\ell\neq\ell'} U_{i_\ell}U_{i_{\ell'}}^\top\): the first two terms
+represent donor--recipient cross-products, and the third represents
+cross-products among recipients that share
+the same donor.  When no recipients copy from donor \(j\) (i.e., donor
+\(j\) is only a self-source), the donor-source meat coincides with the
+rowwise meat for that record.
+The terms \(U_{i_\ell}\) are still the
+recipient-specific analysis scores computed from recipient \(i_\ell\)'s
+own covariates and eligibility status; the aggregation changes the source of covariance, not the completed-data estimating equation
+or any individual record's contribution to the point estimate.
+It does not assert that scores assigned to different donors are
+independent or that the PMM matching uncertainty is fully described by
+this aggregation alone.
+\subsubsection{RW components for use with PMM}
+For imputation \(p\), let \(U^{(p)}\) be the \(n\times q\) matrix of
+rowwise analysis scores evaluated at the completed-data estimate
+\(\hat\beta^{(p)}\), and \(\widetilde U^{(p)}\) the corresponding
+donor-source matrix. The pooled point estimate remains
+\(\hat\beta=m^{-1}\sum_p\hat\beta^{(p)}\). Define
+\[
+\bar{\widetilde U}
+=
+\frac{1}{m}\sum_{p=1}^m \widetilde U^{(p)},
+\qquad
+\widehat\Omega_{\mathrm{src}}
+=
+P_n\{\bar{\widetilde U}_i
+\bar{\widetilde U}_i^\top\},
+\]
+where \(P_n f_i=n^{-1}\sum_i f_i\). Aggregation is performed using each
+imputation's actual donor IDs before averaging over imputations.
+The PMM columns of \(\widehat\kappa\) are given by
+\eqref{pmm-kappa}. For any additional normal or logistic imputation
+models, their columns retain the RW-MICE calculation
+\[
+\widehat\kappa_{\mathrm{par}}
+=
+\frac{1}{nm}\sum_{p=1}^m\sum_{i=1}^n
+U_i^{(p)}S_{\mathrm{par},i}^{(p)\top}.
+\]
+These columns and the PMM columns are placed in the same parameter order
+as the stacked influence contributions \(d_i^{(p)}\).
+For the PMM regression, the observed-score linearization used in the
+implementation is
+\[
+H^{(p)}=-\frac{1}{n(\sigma^{(p)})^2}
+\sum_{j\in\mathcal O_A}x_jx_j^\top,\qquad
+d_{\mathrm{PMM},i}^{(p)}=
+\begin{cases}
+-\{H^{(p)}\}^{-1}\dfrac{x_i(A_i-a_i^{(p)})}{(\sigma^{(p)})^2},
+&i\in\mathcal O_A,\\[4pt]
+0,&i\in\mathcal M_A.
+\end{cases}
+\]
+This contribution describes the fitted matching coefficients, not the
+copied donor value. The PMM block has no separate residual-variance
+coordinate. Influence contributions for additional normal or logistic
+models are calculated as in Section~\ref{extension-1}. With the resulting
+stacked vector, define
+\[
+\widehat\alpha=\frac{1}{nm}\sum_{p=1}^m\sum_{i=1}^n
+d_i^{(p)}d_i^{(p)\top},\qquad
+\bar d_i=\frac{1}{m}\sum_{p=1}^m d_i^{(p)}.
+\]
+The donor-source representation is used in \(\widehat\Omega_{\mathrm{src}}\)
+and the following cross term, but not in place of the recipient scores
+used to calculate \(\widehat\kappa\):
+\[
+\widehat C_{\mathrm{src}}
+=
+\widehat\kappa\,P_n\bigl\{\bar d_i\,\bar{\widetilde U}_i^\top\bigr\}
++
+P_n\bigl\{\bar{\widetilde U}_i\,\bar d_i^\top\bigr\}\,\widehat\kappa^\top .
+\]
+The final RW variance estimator for use with PMM is
+\[
+\widehat\Delta_{\mathrm{PMM}}
+=
+\widehat\Omega_{\mathrm{src}}
++
+\widehat\kappa\,\widehat\alpha\,\widehat\kappa^\top
++
+\widehat C_{\mathrm{src}},
+\qquad
+\widehat\Gamma_{\mathrm{PMM}}
+=
+\frac{1}{n}
+\widehat\tau^{-1}
+\widehat\Delta_{\mathrm{PMM}}
+\bigl(\widehat\tau^{-1}\bigr)^{\!\top},
+\]
+where
+\[
+\widehat\tau=\frac{1}{nm}\sum_{p=1}^m\sum_{i=1}^n
+\left.\frac{\partial U_i^{(p)}(\beta)}{\partial\beta^\top}
+\right|_{\beta=\hat\beta^{(p)}}.
+\]
+This construction retains the three-term RW variance form of
+Section~\ref{robinswang-variance-components}, while using a working
+PMM cross-moment and a donor-source analysis-score representation.
+Differentiability of the working probabilities does not by itself
+establish consistency for the actual \texttt{mice} PMM procedure.
+Its accuracy also depends on the matching approximation and on the
+working models used for \(G_{ij}\); these require assessment for the
+analysis and imputation settings under consideration.

@@ -1,0 +1,110 @@
+\section{Introduction}\label{introduction}
+
+Multiple imputation (MI) is a standard tool in medical research for
+handling missing data in electronic health records, cohort studies, and
+clinical trials \citep{rubin1987multiple}.  After creating several
+completed datasets, the standard approach is to average the
+completed-data point estimates and to estimate the variance using
+Rubin's rules (RR), which add the within-imputation variance to a
+scaled between-imputation variance
+\citep{rubin1987multiple, vanbuuren2011mice, sterne2009multiple, white2011multiple}.
+The appeal of RR is practical: only the completed-data point estimates
+and their model-based standard errors are needed, and no special access
+to the imputation mechanism is required.
+
+The validity of RR rests on a condition known as congeniality between the imputation and analysis procedures \citep{meng1994multiple, xie2017dissecting, bartlett2020bootstrap}: roughly, the two procedures must be embeddable in a single joint model, so that the imputer and the analyst make the same assumptions and use the same information. In a seminal paper, \citet{wang1998large} established the asymptotic theory for a variance estimator based on RR: when congeniality holds, RR is asymptotically correct; when it fails, the RR variance can be systematically too small or too large. Congeniality can fail in either direction. Anti-conservative estimates arise when the analysis exploits structure that the imputation model does not reflect. Conservative estimates arise when the imputation model uses information or assumptions beyond those of the analysis—for example, auxiliary variables, or a model fitted to all subjects while the analysis is evaluated only in a subgroup—so that imputation-induced variation inflates the between-imputation component \citep{meng1994multiple}. Both patterns lead to confidence intervals that fail to maintain nominal coverage.
+
+Two settings where congeniality fails are especially relevant in
+medical data analysis.  The first is a structural mismatch between the
+imputation and analysis models: for instance, imputing under
+homoskedasticity when the analysis estimating equation allows
+heteroskedastic errors, or restricting the analysis to a
+covariate-defined subgroup when the imputation model was fitted on all
+subjects \citep{bartlett2015substantive}.
+The second is a threshold-by-imputation setting: in electronic health
+record (EHR) studies with error-prone measurements, the same imputed
+variable both enters the analysis and determines who is included in the
+analysis set.  Here the imputation model is fitted on all subjects,
+while the analysis estimating equation is evaluated in a
+post-imputation subset that depends on the imputed value.
+\citet{giganti2020multiple}, hereafter GS, demonstrated this in an HIV
+cohort study where validated CD4 count simultaneously determined
+eligibility and served as an analysis covariate: RR overstated the
+variance by $29\%$ relative to the correctly calibrated estimator,
+producing unnecessarily wide confidence intervals.  The same issue
+arises whenever imputed variables determine study eligibility, which has
+become increasingly common as analyses rely on imputed inclusion
+criteria derived from imperfect EHR data; related EHR validation-and-imputation analyses raise the same calibration question
+\citep{giganti2020dependent, shen2026missingness}.
+
+To avoid the requirement of congeniality, \citet{robins2000inference},
+hereafter Robins--Wang or RW, proposed an estimating-equation
+alternative to RR for estimating the MI variance.  Rather than
+approximating the variance through RR, the RW estimator is based on
+three sources of variance: the sampling variability of the
+complete-data analysis score, the variability propagated from
+estimating the imputation model parameter, and the cross-covariance
+between the two.  Because this construction targets the
+repeated-sampling variance of the implemented estimator, it remains
+consistent when a parametric imputation model is used, whether or not
+the imputation and analysis procedures are congenial.  Its guarantee
+concerns variance calibration alone: when the imputation model is
+misspecified, the point estimator may be biased for the scientific
+target, and this bias is unaffected by the choice of variance
+estimator.  We formalize this distinction in
+Section~\ref{motivating-setting}.  An alternative route to valid
+inference under uncongeniality is the bootstrap, which re-runs the
+entire imputation and analysis procedure across resamples
+\citep{schomaker2018bootstrap, bartlett2020bootstrap}; we do not pursue
+it here because repeating the full imputation workflow can be
+computationally prohibitive in large studies.
+
+Despite these advantages, the RW estimator has seen limited uptake in
+practice: the applications we are aware of are a simulation comparison
+of imputation variance estimators with accompanying code
+\citep{hughes2016comparison} and the EHR validation analyses of GS and
+colleagues \citep{giganti2020dependent, giganti2020multiple}.  A
+central obstacle is that, for a long time, no general software
+implemented the method; \citet{giganti2020multiple} made RW more
+accessible by providing implementation code and demonstrating it on
+real EHR data, but only for a single parametric imputation model and a
+limited set of settings.  Modern imputation workflows raise two
+further challenges.  First, most analysts impute by multiple
+imputation with chained equations (MICE), in which each variable is
+imputed from a separate conditional model with no joint imputation
+likelihood \citep{vanbuuren2011mice}, so the exact estimator RW proposed
+cannot be applied directly.  Second, predictive mean matching
+(PMM)---the default method in MICE for continuous variables---is not a
+parametric model: the imputed value is copied from a matched observed
+donor rather than drawn from a parametric distribution
+\citep{schenker1995partially, andridge2010review}, whereas RW was
+developed for parametric imputation.
+
+This paper addresses these challenges and makes three contributions.
+First, we develop an open-source \textsf{R} package, \texttt{rw},
+implementing the RW variance estimator; the package integrates with
+\texttt{mice} output, and the syntax for RW variance estimation mimics
+that of \texttt{mice} for RR variance estimation.  Second, we
+generalize the RW variance estimator to chained conditional (MICE)
+imputation by stacking the score and nuisance contributions from each
+conditional model block, with no joint imputation likelihood, so that
+the package can be used with any parametric imputation method in
+\texttt{mice}.  Third, we extend the RW variance estimator to PMM, a
+form of nonparametric imputation for which no RW-type variance
+estimator has previously been proposed; related variance ideas for
+hot-deck and nearest-neighbor imputation have been studied in survey
+sampling
+\citep{rao1992jackknife,chen2002common,kim2004fractional,yang2020pmm}
+but have not been integrated into the RW framework.  Throughout, our
+focus is on variance calibration for existing imputation workflows.
+
+In Section~\ref{variance-estimation}, we describe the data structure
+and notation, the MI point estimator, and the RW variance estimator.
+We develop extensions to MICE and PMM in
+Section~\ref{improved-variance}.  In
+Section~\ref{software-implementation}, we describe the software
+implementation, and we evaluate our proposal compared with RR in the
+original RW missing-data benchmark and in the GS measurement-error
+validation setting in Section~\ref{simulation-studies}.  We conclude by
+discussing limitations and directions of future research in
+Section~\ref{discussion}.

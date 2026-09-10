@@ -1,0 +1,198 @@
+\section{Consistency Arguments}\label{appendix-theory}
+\subsection{Chained conditional imputation models}\label{appendix mice}
+Let \(p=1,\ldots,m\) index the completed datasets, with \(m\) fixed.
+For imputation \(p\), write the completed data analysis contribution as
+\(U_i^{(p)}(\beta)\) and define
+\(\bar U_i(\beta)=m^{-1}\sum_{p=1}^m U_i^{(p)}(\beta)\).
+The RW-MICE estimator solves \(0=P_n\bar U(\hat\beta)\).
+\paragraph{Conditions.}
+\begin{enumerate}[(i)]
+  \item \(E\{\bar U_i(\beta)\}\) has a unique zero \(\beta^\ast\) and
+        \(\tau=E\{\partial\bar U_i(\beta^\ast)/\partial\beta^\top\}\)
+        is nonsingular.
+  \item A law of large numbers and central limit theorem apply to
+        \(\bar U_i(\beta^\ast)\) and to its derivative.
+  \item For each block \(r\), the realized conditional model state
+        satisfies \(\psi_r^{(p)}-\psi_{r0}=O_p(n^{-1/2})\), where
+        \(\psi_{r0}\) is the probability limit of the block \(r\)
+        parameter estimator under repeated sampling.
+  \item For each block \(r\), the matrix
+        \(A_r^{(p)}=P_n\bigl\{\partial s_{r,i}^{(p)}(\psi_r)/
+        \partial\psi_r^\top\big|_{\psi_r=\psi_r^{(p)}}\delta_{r,i}\bigr\}\)
+        converges in probability to a nonsingular limit, and the block
+        scores have finite second moments.
+\end{enumerate}
+\paragraph{Result.}
+Under conditions (i)--(iv),
+\[
+\sqrt n(\hat\beta-\beta^\ast)
+\xrightarrow{d}
+N\bigl\{0,\,\tau^{-1}(\Omega_m+\kappa_m\alpha_m\kappa_m^\top+C_m)
+\bigl(\tau^{-1}\bigr)^{\top}\bigr\},
+\]
+where the population moments \(\Omega_m,\kappa_m,\alpha_m,C_m\) are
+defined below, and the estimator
+\(\widehat\Gamma_{\mathrm{RW\text{-}MICE}}
+=n^{-1}\widehat\tau^{-1}(\widehat\Omega_m
++\widehat\kappa_m\widehat\alpha_m\widehat\kappa_m^\top
++\widehat C_m)\bigl(\widehat\tau^{-1}\bigr)^{\top}\)
+is consistent.
+\paragraph{Argument.}
+For block \(r\), define the missing value score
+\(S_{r,\mathrm{mis},i}^{(p)}=s_{r,i}^{(p)}(\psi_r^{(p)})\) for rows
+imputed in block \(r\) and zero otherwise, and the observed side score
+\(S_{r,\mathrm{obs},i}^{(p)}=\delta_{r,i}\,s_{r,i}^{(p)}(\psi_r^{(p)})\).
+The blockwise nuisance influence is
+\(d_{r,i}^{(p)}=-\{A_r^{(p)}\}^{-1}S_{r,\mathrm{obs},i}^{(p)}\).
+By condition~(iii), \(\psi_r^{(p)}-\psi_{r0}=O_p(n^{-1/2})\).  A
+first-order Taylor expansion of any smooth function of \(\psi_r^{(p)}\)
+around \(\psi_{r0}\) therefore changes the empirical RW moments only at
+order \(n^{-1/2}\), which is higher order than the leading variance
+term.  The substitution error from using realized states \(\psi_r^{(p)}\)
+as plug-ins is asymptotically negligible.
+Stacking across blocks gives the composite missing value score
+\(S_{\mathrm{mis},i}^{(p)}
+=(S_{1,\mathrm{mis},i}^{(p)\top},\ldots,S_{R,\mathrm{mis},i}^{(p)\top})^\top\)
+and nuisance influence
+\(d_i^{(p)}=(d_{1,i}^{(p)\top},\ldots,d_{R,i}^{(p)\top})^\top\).
+No joint likelihood across blocks is required; each block contributes
+its own blockwise Newton linearization.
+Define the fixed-\(m\) population moments
+\[
+\Omega_m=E\{\bar U_i(\beta^\ast)\bar U_i(\beta^\ast)^\top\},
+\]
+\[
+\kappa_m=m^{-1}\!\sum_{p=1}^m\!
+E\{U_i^{(p)}(\beta^\ast)S_{\mathrm{mis},i}^{(p)\top}\},
+\quad
+\alpha_m=m^{-1}\!\sum_{p=1}^m\! E\{d_i^{(p)}d_i^{(p)\top}\},
+\]
+\[
+C_m=\kappa_m E(\bar d_i\bar U_i^\top)
++E(\bar U_i\bar d_i^\top)\kappa_m^\top,
+\qquad
+\bar d_i=m^{-1}\sum_{p=1}^m d_i^{(p)}.
+\]
+By conditions~(ii) and~(iv) and the plug-in argument,
+\(\widehat\Omega_m\overset{p}{\to}\Omega_m\),
+\(\widehat\kappa_m\overset{p}{\to}\kappa_m\),
+\(\widehat\alpha_m\overset{p}{\to}\alpha_m\),
+\(\widehat C_m\overset{p}{\to}C_m\).
+A Taylor expansion of \(P_n\bar U(\hat\beta)\) around \(\beta^\ast\)
+gives
+\(\sqrt n(\hat\beta-\beta^\ast)
+=-\tau^{-1}\sqrt n\,P_n\bar U(\beta^\ast)+o_p(1)\).
+The variance of \(\sqrt n\,P_n\bar U(\beta^\ast)\) decomposes into
+\(\Omega_m+\kappa_m\alpha_m\kappa_m^\top+C_m\) by the standard RW
+argument, with the stacked \(S_{\mathrm{mis}}\) and \(d\) vectors in
+place of the single model quantities.  Substituting the consistent
+empirical moments and applying the continuous mapping theorem and
+Slutsky's theorem yields the stated result.  When \(R=1\) the stacked
+score reduces to the single model score and the estimator coincides
+with the original RW estimator of \citet{robins2000inference}.
+\subsection{Bridging the two settings}
+The MICE argument above covers the case where every block is parametric.
+The most common applied setting additionally contains a PMM block: one
+continuous variable is imputed by the smooth copied donor law and the
+remaining blocks are parametric.  In this case, the argument of
+Section~\ref{appendix mice} applies to the parametric blocks, the PMM
+block contributes its smooth donor score \(S_{\mathrm{PMM},i}^{(p)}\)
+and predictive mean nuisance influence \(d_i^{(p)}\) to the stacked
+vectors, and the combined quantities enter the PMM argument of
+Section~\ref{appendix pmm} below, which additionally corrects the
+analysis score covariance for the shared donor dependence induced by
+the copied value feature.
+\subsection{Smooth copied donor PMM}\label{appendix pmm}
+The proposed PMM estimator uses a smooth copied donor working law: the
+completed value is still copied from an observed donor, but the donor
+probability is a differentiable function of the predictive mean
+distance.  The argument below concerns this smooth law and is not a
+claim that the nondifferentiable hard nearest-neighbor donor rule has
+the same nuisance score.
+Let \(J_i^{(p)}\) be the selected donor for recipient \(i\) in
+imputation \(p\), and let
+\(S_{\mathrm{PMM},i}^{(p)}
+=\partial\log p_{iJ_i^{(p)}}(\psi)/\partial\psi\big|_{\psi=\psi^{(p)}}\)
+be the score of the smooth donor law, with zero contribution for rows
+not imputed by the PMM block.
+\paragraph{Additional conditions.}
+In addition to conditions (i)--(iv) applied to the parametric blocks,
+assume that the smooth donor law is differentiable in \(\psi\) with
+finite second moments for \(S_{\mathrm{PMM},i}\), \(d_i\), and
+\(U_i\), and that the donor source analysis score array satisfies a
+Lindeberg condition: no single donor source dominates the averaged
+meat, in the sense that
+\(n^{-1}\max_i\|\bar{\widetilde U}_i\|^2\overset{p}{\to}0\)
+and \(P_n(\bar{\widetilde U}_i\bar{\widetilde U}_i^\top)\) converges.
+\paragraph{Donor source scores.}
+The donor source analysis score for donor \(j\) is
+\[
+\widetilde U_j^{(p)}(\beta)
+=
+U_j^{(p)}(\beta)+\sum_{i:\,J_i^{(p)}=j}U_i^{(p)}(\beta).
+\]
+Define
+\(\bar{\widetilde U}_i(\beta)=m^{-1}\sum_{p=1}^m\widetilde U_i^{(p)}(\beta)\),
+\(\bar d_i=m^{-1}\sum_{p=1}^m d_i^{(p)}\), and the population moments
+\[
+\Omega_{\mathrm{src}}
+=E\{\bar{\widetilde U}_i(\beta^\ast)\bar{\widetilde U}_i(\beta^\ast)^\top\},
+\quad
+\kappa=m^{-1}\sum_{p=1}^m E\{U_i^{(p)}(\beta^\ast)S_i^{(p)\top}\},
+\]
+\[
+\alpha=m^{-1}\sum_{p=1}^m E\{d_i^{(p)}d_i^{(p)\top}\},
+\quad
+C_{\mathrm{src}}
+=\kappa E(\bar d_i\bar{\widetilde U}_i^\top)
++E(\bar{\widetilde U}_i\bar d_i^\top)\kappa^\top.
+\]
+\paragraph{Result.}
+Under the above conditions,
+\[
+\sqrt n(\hat\beta-\beta^\ast)
+\xrightarrow{d}
+N\bigl\{0,\,
+\tau^{-1}(\Omega_{\mathrm{src}}+\kappa\alpha\kappa^\top+C_{\mathrm{src}})
+\bigl(\tau^{-1}\bigr)^{\top}
+\bigr\},
+\]
+and the estimator \(\widehat\Gamma_{\mathrm{PMM}}\) obtained by
+replacing population moments with their sample analogues is consistent.
+\paragraph{Argument.}
+The donor source representation preserves the averaged estimating
+equation: \(\sum_iU_i^{(p)}=\sum_i\widetilde U_i^{(p)}\) for each
+\(p\), so the bread matrix \(\tau\) and the point estimator \(\hat\beta\)
+are unchanged.
+Because the donor probabilities are differentiable in \(\psi\), the
+smooth PMM block has an ordinary missing value score
+\(S_{\mathrm{PMM},i}^{(p)}\), and the standard observed score
+linearization for the predictive mean working model gives the nuisance
+influence contribution \(d_i^{(p)}\).  Stacking this block with the
+parametric blocks gives the same type of \(S_{\mathrm{mis}}\) and \(d\)
+vectors as in Section~\ref{appendix mice}.  The cross moment
+\(\kappa=E\{US_{\mathrm{mis}}^\top\}\) is computed from the rowwise
+completed record analysis contribution, not from the donor source score:
+\(\kappa\) measures the per record covariance between the analysis score
+and the imputation score, and is not affected by cross record correlation
+induced by donor sharing.
+The copied donor feature changes the independent first order summands
+for the direct analysis score covariance.  When several recipients copy
+from the same observed donor, their analysis score contributions share
+the same stochastic source, so the independent summands are the
+donor source sums \(\bar{\widetilde U}_i\).  This replaces \(\Omega\) by
+\(\Omega_{\mathrm{src}}\).  The same substitution applies to the
+direct analysis score side of the cross term, giving \(C_{\mathrm{src}}\)
+in place of \(C\), while the nuisance side remains \(\bar d_i\).
+Under the stated moment and Lindeberg conditions, the empirical moments
+for \(\Omega_{\mathrm{src}}\), \(\kappa\), \(\alpha\), and
+\(C_{\mathrm{src}}\) converge to their population analogues.  The
+central limit theorem applied to the first order expansion and
+Slutsky's theorem then yield the stated sandwich limit and consistency
+of the sample analogue estimator.
+The Lindeberg condition rules out configurations in which a single
+observed donor supplies values to a diverging fraction of recipients,
+causing one row of \(\widetilde U^{(p)}\) to dominate the meat.  In
+typical applications where the donor pool is large relative to the
+number of recipients from any one donor, this condition holds
+automatically.

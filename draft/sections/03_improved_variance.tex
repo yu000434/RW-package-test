@@ -1,0 +1,17 @@
+\section{Improved variance estimation with multiply-imputed data}
+\label{improved-variance}
+This section extends the RW framework beyond the parametric imputation
+model assumed in Section~\ref{robinswang-variance-components}. For
+chained conditional (MICE) imputation, there is no joint imputation
+score: \(S_{\mathrm{mis}}\) and \(d\) are replaced by stacked vectors
+assembled from each conditional model block, as developed in
+Section~\ref{extension-1}; we call the resulting estimator RW-MICE.
+For predictive mean matching, the completed value is copied from an
+observed donor rather than drawn from a parametric distribution, so
+two things change: the donor selection needs a differentiable working
+score, and completed rows sharing a donor are not independent
+summands, requiring \(\widehat\Omega\) and \(\widehat C\) to be
+formed at the donor-source level. This is developed in
+Section~\ref{extension-2}, yielding the RW-PMM estimator.
+\input{sections/04_extension1}
+\input{sections/05_extension2}
