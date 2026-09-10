@@ -3,6 +3,7 @@
 .Rhistory
 README.html
 docs/
+/draft/
 simulation/results/
 simulation/reports/*.aux
 simulation/reports/*.log
